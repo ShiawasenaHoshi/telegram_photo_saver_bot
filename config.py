@@ -11,7 +11,7 @@ class Config(object):
     TG_ADMIN_ID = os.environ.get('TG_ADMIN_ID')
     DOWNLOAD_FOLDER = os.environ.get('DOWNLOAD_FOLDER') or os.path.join(basedir, 'download')
     YD_TOKEN = os.environ.get('YD_TOKEN')
-    YD_DOWNLOAD_FOLDER = os.environ.get('YD_DOWNLOAD_FOLDER') or "tg_photo_saver"
+    YD_DOWNLOAD_FOLDER = os.environ.get('YD_DOWNLOAD_FOLDER') or "/tg_photo_saver"
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
                               'sqlite:///' + os.path.join(basedir, 'app.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
