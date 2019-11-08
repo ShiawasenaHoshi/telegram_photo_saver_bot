@@ -1,3 +1,5 @@
+import datetime
+
 from app import db
 from app.generic import calc_hash
 from config import Config
@@ -14,13 +16,13 @@ class Photo(db.Model):
     @staticmethod
     def get_photo(photo_file, message):
         h = calc_hash(photo_file)
-        photo = Photo.query.filter_by(chat_id=message.chat.id, hash=h).first()
+        photo = Photo.query.filter_by(chat_id=message.chat.id, file_hash=h).first()
         if photo is None:
             photo = Photo()
             photo.file_hash = h
             photo.chat_id = message.chat.id
             photo.user_id = message.from_user.id
-            photo.msg_date = message.date
+            photo.msg_date = datetime.datetime.fromtimestamp(message.date)
             photo.filename = "NULL"  # fixme
             db.session.add(photo)
             db.session.commit()

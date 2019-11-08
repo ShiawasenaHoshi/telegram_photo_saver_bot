@@ -5,10 +5,9 @@ from threading import Thread
 
 import telebot
 from exif import Image
-from flask import Flask, current_app
+from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-
 from yadisk import yadisk
 
 from config import Config
