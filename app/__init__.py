@@ -45,7 +45,7 @@ def start_bot():
     get_upload_folder("")
 
     @bot.message_handler(content_types=["photo"], func=lambda
-            message: message.chat.title is not None and message.from_user.id != Config.TG_ADMIN_ID)
+            message: message.chat.title is not None and message.from_user.id != int(Config.TG_ADMIN_ID))
     def delete_compressed_image(message):
         bot.delete_message(message.chat.id, message.message_id)
         bot.send_message(message.chat.id, "Фотографии можно отправлять только файлом")
