@@ -65,25 +65,27 @@ def start_bot(app):
                     img = Image(image_file)
                     dt_str = img.datetime
                     dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
-                    yd_path = get_upload_folder(chat_name, dt) + "/" + get_file_name(message, dt)
+                    yd_path = get_upload_folder(chat_name, dt) + "/" + get_yd_name(message, dt)
 
-                if not y.exists(yd_path):
-                    with open(local_path, "rb") as f:
-                        with app.app_context():
-                            chat = Chat.get_chat(message)
-                            photo = Photo.get_photo(local_path, message)
+                with open(local_path, "rb") as f:
+                    with app.app_context():
+                        if not Chat.is_exists(message.chat.id):
+                            Chat.save_to_db(message.chat.id, message.chat.title)
+                        if not y.exists(yd_path):
                             y.upload(f, yd_path)
+                            if not Photo.is_exists(message.chat.id, local_path):
+                                Photo.save_to_db(local_path, message, yd_path)
                 os.remove(local_path)
 
-        @bot.message_handler(func=lambda message: message.chat.title is None and is_extension_ok(message),
-                             content_types=['document'])
-        def delete_file(message):
-            pass
+    @bot.message_handler(func=lambda message: message.chat.title is None and is_extension_ok(message),
+                         content_types=['document'])
+    def delete_file(message):
+        pass
 
-        def get_file_name(message, dt):
-            return dt.strftime('%H_%M_%S') + "_" + message.document.file_name
+    def get_yd_name(message, dt):
+        return dt.strftime('%H_%M_%S') + "_" + message.document.file_name
 
-        def is_extension_ok(message):
-            return re.search('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type).group(0) is not None
+    def is_extension_ok(message):
+        return re.search('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type).group(0) is not None
 
-        bot.polling(none_stop=True)
+    bot.polling(none_stop=True)
