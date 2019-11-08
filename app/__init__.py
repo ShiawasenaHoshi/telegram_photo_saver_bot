@@ -38,16 +38,14 @@ def start_echo_bot():
 
     get_chat_folder("")
 
-    # @bot.message_handler(content_types=["text"])
-    # def repeat_all_messages(message):
-    #     bot.send_message(message.chat.id, message.text)
+    @bot.message_handler(content_types=["photo"], func=lambda
+            message: message.chat.title is not None and message.from_user.id != Config.TG_ADMIN_ID)
+    def delete_compressed_image(message):
+        bot.delete_message(message.chat.id, message.message_id)
+        bot.send_message(message.chat.id, "Фотографии можно отправлять только файлом")
 
-    # @bot.message_handler(content_types=["photo"],
-    #                      func=lambda message: message.chat.title is not None and message.from_user == Config.TG_ADMIN_ID)
-    # def delete_image(message):
-    #     bot.send_message(message.chat.id, "Удалить спам!")
-
-    @bot.message_handler(func=lambda message: message.chat.title is not None and is_extension_ok(message), content_types=['document'])
+    @bot.message_handler(func=lambda message: message.chat.title and is_extension_ok(message),
+                         content_types=['document'])
     def save_file(message):
         file_info = bot.get_file(message.document.file_id)
         chat_name = message.chat.title
@@ -62,13 +60,12 @@ def start_echo_bot():
                     y.upload(f, yd_path)
             os.remove(local_path)
 
-    @bot.message_handler(func=lambda message: message.chat.title is None and is_extension_ok(message), content_types=['document'])
+    @bot.message_handler(func=lambda message: message.chat.title is None and is_extension_ok(message),
+                         content_types=['document'])
     def delete_file(message):
         pass
 
-
-
     def is_extension_ok(message):
-        return message.content_type == "document" and re.search('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type).group(0) is not None
+        return re.search('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type).group(0) is not None
 
     bot.polling(none_stop=True)
