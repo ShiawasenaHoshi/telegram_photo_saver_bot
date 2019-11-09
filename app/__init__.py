@@ -99,7 +99,8 @@ def start_bot(app):
                 bot.send_message(message.chat.id, "Нет такого фото")
             else:
                 bot.delete_message(photo.chat_id, photo.msg_id)
-                bot.send_message(chat_id=message.chat.id, text="Фото удалено")
+                text = "Фото удалено из чата: " + Chat.get_chat(photo.chat_id).name
+                bot.send_message(chat_id=message.chat.id, text=text)
                 y.remove(photo.yd_path)
                 db.session.delete(photo)
                 db.session.commit()
