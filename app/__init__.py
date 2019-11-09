@@ -37,8 +37,12 @@ def start_bot(app):
             if folder_date is None:
                 path = Config.YD_DOWNLOAD_FOLDER + "/" + chat_name
             else:
-                name = folder_date.strftime('%Y_%m_%d')
-                path = get_upload_folder(chat_name) + "/" + name
+                if isinstance(folder_date, datetime.datetime):
+                    name = folder_date.strftime('%Y_%m_%d')
+                    path = get_upload_folder(chat_name) + "/" + name
+                else:
+                    name = str(folder_date)
+                    path = get_upload_folder(chat_name) + "/" + name
             if not y.exists(path):
                 y.mkdir(path)
             return path
@@ -63,10 +67,13 @@ def start_bot(app):
                     new_file.write(downloaded_file)
                 with open(local_path, 'rb') as image_file:
                     img = Image(image_file)
-                    dt_str = img.datetime
-                    dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
-                    yd_path = get_upload_folder(chat_name, dt) + "/" + get_yd_name(message, dt)
-
+                    if img.has_exif:
+                        dt_str = img.datetime
+                        dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
+                        yd_path = get_upload_folder(chat_name, dt) + "/" + get_yd_name(message, dt)
+                    else:
+                        yd_path = get_upload_folder(chat_name,
+                                                    "no_exif") + "/" + message.document.file_id + "_" + message.document.file_name
                 with open(local_path, "rb") as f:
                     with app.app_context():
                         if not Chat.is_exists(message.chat.id):
