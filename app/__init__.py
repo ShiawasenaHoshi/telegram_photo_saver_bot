@@ -82,6 +82,9 @@ def start_bot(app):
                             y.upload(f, yd_path)
                             if not Photo.is_exists(message.chat.id, local_path):
                                 Photo.save_to_db(local_path, message, yd_path)
+                        else:
+                            bot.delete_message(message.chat.id, message.message_id)
+                            bot.send_message(message.chat.id, text="Дубликат в яндекс-диске")
                 os.remove(local_path)
 
     @bot.message_handler(func=lambda message: message.chat.title is None and is_extension_ok(message),
