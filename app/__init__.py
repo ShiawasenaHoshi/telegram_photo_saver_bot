@@ -48,10 +48,17 @@ def start_bot(app):
                     name = str(folder_date)
                     path = get_upload_folder(chat_name) + "/" + name
             if not y.exists(path):
-                y.mkdir(path)
+                try:
+                    y.mkdir(path)
+                except BaseException as e:
+                    log.error('{0}'.format(e))
             return path
 
         get_upload_folder("")
+
+        @bot.message_handler(content_types=["group_chat_created", "migrate_to_chat_id", "migrate_from_chat_id"])
+        def group_chat_created(message):
+            pass
 
         @bot.message_handler(content_types=["photo"], func=lambda
                 message: message.chat.title is not None and message.from_user.id != int(Config.TG_ADMIN_ID))
@@ -62,36 +69,42 @@ def start_bot(app):
         @bot.message_handler(func=lambda message: message.chat.title and is_extension_ok(message),
                              content_types=['document'])
         def save_file(message):
-            file_info = bot.get_file(message.document.file_id)
-            chat_name = message.chat.title
-            if chat_name:
-                downloaded_file = bot.download_file(file_info.file_path)
-                local_path = Config.DOWNLOAD_FOLDER + "/" + message.document.file_id + "_" + message.document.file_name
-                with open(local_path, 'w+b') as new_file:
-                    new_file.write(downloaded_file)
-                with open(local_path, 'rb') as image_file:
-                    img = Image(image_file)
-                    if img.has_exif:
-                        dt_str = img.datetime
-                        dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
-                        yd_path = get_upload_folder(chat_name, dt) + "/" + get_yd_name(message, dt)
-                    else:
-                        yd_path = get_upload_folder(chat_name,
-                                                    "no_exif") + "/" + message.document.file_id + "_" + message.document.file_name
-                with open(local_path, "rb") as f:
-                    with app.app_context():
-                        if not Chat.is_exists(message.chat.id):
-                            Chat.save_to_db(message.chat.id, message.chat.title)
-                        if not y.exists(yd_path):
-                            y.upload(f, yd_path)
-                            log.info("YD uploaded {0} into {1}".format(message.document.file_name, yd_path))
-                            if not Photo.is_exists(message.chat.id, local_path):
-                                Photo.save_to_db(local_path, message, yd_path)
-                                log.info("DB added: " + yd_path)
+            try:
+                file_info = bot.get_file(message.document.file_id)
+                chat_name = message.chat.title
+                if chat_name:
+                    downloaded_file = bot.download_file(file_info.file_path)
+                    local_path = Config.DOWNLOAD_FOLDER + "/" + message.document.file_id + "_" + message.document.file_name
+                    with open(local_path, 'w+b') as new_file:
+                        new_file.write(downloaded_file)
+                    with open(local_path, 'rb') as image_file:
+                        img = Image(image_file)
+                        if img.has_exif:
+                            dt_str = img.datetime
+                            dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
+                            yd_path = get_upload_folder(chat_name, dt) + "/" + get_yd_name(message, dt)
                         else:
-                            bot.delete_message(message.chat.id, message.message_id)
-                            bot.send_message(message.chat.id, text="Дубликат в яндекс-диске")
-                os.remove(local_path)
+                            yd_path = get_upload_folder(chat_name,
+                                                        "no_exif") + "/" + message.document.file_id + "_" + message.document.file_name
+                    with open(local_path, "rb") as f:
+                        with app.app_context():
+                            if not Chat.is_exists(message.chat.id):
+                                try:
+                                    Chat.save_to_db(message.chat.id, message.chat.title)
+                                except BaseException as e:
+                                    log.error('{0}'.format(e))
+                            if not y.exists(yd_path):
+                                y.upload(f, yd_path)
+                                log.info("YD uploaded {0} into {1}".format(message.document.file_name, yd_path))
+                                if not Photo.is_exists(message.chat.id, local_path):
+                                    Photo.save_to_db(local_path, message, yd_path)
+                                    log.info("DB added: " + yd_path)
+                            else:
+                                bot.delete_message(message.chat.id, message.message_id)
+                                bot.send_message(message.chat.id, text="Дубликат в яндекс-диске")
+                    os.remove(local_path)
+            except BaseException as e:
+                log.error('{0}'.format(e))
 
     @bot.message_handler(func=lambda message: message.chat.title is None and is_extension_ok(message),
                          content_types=['document'])
@@ -120,6 +133,8 @@ def start_bot(app):
         return dt.strftime('%H_%M_%S') + "_" + message.document.file_name
 
     def is_extension_ok(message):
+        if message.document is None:
+            return False
         return re.search('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type).group(0) is not None
 
     bot.polling(none_stop=True)
