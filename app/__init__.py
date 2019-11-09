@@ -1,11 +1,12 @@
 import datetime
+import logging
 import os
 import re
 from threading import Thread
 
 import telebot
 from exif import Image
-from flask import Flask
+from flask import Flask, current_app
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from yadisk import yadisk
@@ -22,16 +23,19 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     migrate.init_app(app, db)
-
+    app.logger.setLevel(logging.INFO)
     Thread(target=start_bot, args=(app,)).start()
     return app
 
 
 def start_bot(app):
     from app.models import Chat, Photo
+
     with app.app_context():
+        log = current_app.logger
         bot = telebot.TeleBot(Config.TG_TOKEN)
         y = yadisk.YaDisk(token=Config.YD_TOKEN)
+        log.info("Bot started")
 
         def get_upload_folder(chat_name, folder_date=None):
             if folder_date is None:
@@ -80,8 +84,10 @@ def start_bot(app):
                             Chat.save_to_db(message.chat.id, message.chat.title)
                         if not y.exists(yd_path):
                             y.upload(f, yd_path)
+                            log.info("YD uploaded {0} into {1}".format(message.document.file_name, yd_path))
                             if not Photo.is_exists(message.chat.id, local_path):
                                 Photo.save_to_db(local_path, message, yd_path)
+                                log.info("DB added: " + yd_path)
                         else:
                             bot.delete_message(message.chat.id, message.message_id)
                             bot.send_message(message.chat.id, text="Дубликат в яндекс-диске")
@@ -104,9 +110,11 @@ def start_bot(app):
                 bot.delete_message(photo.chat_id, photo.msg_id)
                 text = "Фото удалено из чата: " + Chat.get_chat(photo.chat_id).name
                 bot.send_message(chat_id=message.chat.id, text=text)
-                y.remove(photo.yd_path)
+                yd_path = photo.yd_path
+                y.remove(yd_path)
                 db.session.delete(photo)
                 db.session.commit()
+                log.info("File deleted from {0}".format(yd_path))
 
     def get_yd_name(message, dt):
         return dt.strftime('%H_%M_%S') + "_" + message.document.file_name
