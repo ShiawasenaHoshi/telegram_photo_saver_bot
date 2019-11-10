@@ -137,35 +137,35 @@ def start_bot(app):
                 log.error('{0}'.format(e))
                 bot.reply_to(message, "Файл не скачался. Повторите")
 
-    @bot.message_handler(func=lambda message: message.chat.title is None and is_extension_ok(message),
-                         content_types=['document'])
-    def delete_file(message):
-        with app.app_context():
-            file_info = bot.get_file(message.document.file_id)
-            downloaded_file = bot.download_file(file_info.file_path)
-            local_path = Config.DOWNLOAD_FOLDER + "/" + message.document.file_id + "_" + message.document.file_name
-            with open(local_path, 'w+b') as new_file:
-                new_file.write(downloaded_file)
-            photo = Photo.get_duplicate(message.from_user.id, datetime.datetime.fromtimestamp(message.forward_date),
-                                        local_path)
-            if photo is None:
-                bot.send_message(message.chat.id, "Нет такого фото")
-            else:
-                bot.delete_message(photo.chat_id, photo.msg_id)
-                text = "Фото удалено из чата: " + Chat.get_chat(photo.chat_id).name
-                bot.send_message(chat_id=message.chat.id, text=text)
-                yd_path = photo.yd_path
-                y.remove(yd_path)
-                db.session.delete(photo)
-                db.session.commit()
-                log.info("File deleted from {0}".format(yd_path))
+        @bot.message_handler(func=lambda message: message.chat.title is None and is_extension_ok(message),
+                             content_types=['document'])
+        def delete_file(message):
+            with app.app_context():
+                file_info = bot.get_file(message.document.file_id)
+                downloaded_file = bot.download_file(file_info.file_path)
+                local_path = Config.DOWNLOAD_FOLDER + "/" + message.document.file_id + "_" + message.document.file_name
+                with open(local_path, 'w+b') as new_file:
+                    new_file.write(downloaded_file)
+                photo = Photo.get_duplicate(message.from_user.id, datetime.datetime.fromtimestamp(message.forward_date),
+                                            local_path)
+                if photo is None:
+                    bot.send_message(message.chat.id, "Нет такого фото")
+                else:
+                    bot.delete_message(photo.chat_id, photo.msg_id)
+                    text = "Фото удалено из чата: " + Chat.get_chat(photo.chat_id).name
+                    bot.reply_to(message, text=text)
+                    yd_path = photo.yd_path
+                    y.remove(yd_path)
+                    db.session.delete(photo)
+                    db.session.commit()
+                    log.info("File deleted from {0}".format(yd_path))
 
-    def get_yd_name(message, dt):
-        return dt.strftime('%H_%M_%S') + "_" + message.document.file_name
+        def get_yd_name(message, dt):
+            return dt.strftime('%H_%M_%S') + "_" + message.document.file_name
 
-    def is_extension_ok(message):
-        if message.document is None:
-            return False
-        return re.search('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type).group(0) is not None
+        def is_extension_ok(message):
+            if message.document is None:
+                return False
+            return re.search('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type).group(0) is not None
 
-    bot.polling(none_stop=True)
+        bot.polling(none_stop=True)
