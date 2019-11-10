@@ -9,6 +9,7 @@ from exif import Image
 from flask import Flask, current_app
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from telebot.apihelper import ApiException
 from yadisk import yadisk
 
 from config import Config
@@ -56,6 +57,27 @@ def start_bot(app):
 
         get_upload_folder("")
 
+        @bot.message_handler(commands=['start', 'help'], func=lambda
+                message: message.chat.title is not None and message.from_user.id == int(Config.TG_ADMIN_ID))
+        def send_welcome(message):
+            bot.reply_to(message,
+                         "Привет! Я бот для скачивания фоток в яндекс. Не пытайтесь кидать фотки не файлами - я их удалю. Не меняйте название чата. Не удаляйте фотки в чате напрямую - скидывайте мне и я удалю их сам. Чтобы получить инструкцию о правильной заливке фото напишите мне в ЛС: /help")
+
+        @bot.message_handler(commands=['direct_link'], func=lambda
+                message: message.chat.title is not None and message.from_user.id == int(Config.TG_ADMIN_ID))
+        def get_direct_link(message):
+            yd_path = Config.YD_DOWNLOAD_FOLDER + "/" + message.chat.title
+            link = y.get_download_link(yd_path)
+            bot.reply_to(message, "Архив с фотками: " + link)
+
+        @bot.message_handler(commands=['link'], func=lambda
+                message: message.chat.title is not None and message.from_user.id == int(Config.TG_ADMIN_ID))
+        def get_public_link(message):
+            yd_path = Config.YD_DOWNLOAD_FOLDER + "/" + message.chat.title
+            link_obj = y.publish(path=yd_path, fields=["public_url"])
+            link = y.get_public_download_link(link_obj.FIELDS['href'])
+            bot.reply_to(message, "Фотки здесь: " + link)
+
         @bot.message_handler(content_types=["group_chat_created", "migrate_to_chat_id", "migrate_from_chat_id"])
         def group_chat_created(message):
             pass
@@ -71,6 +93,9 @@ def start_bot(app):
         def save_file(message):
             try:
                 file_info = bot.get_file(message.document.file_id)
+                log.info(
+                    '{0} {1} {2} downloading'.format(message.message_id, message.document.file_id,
+                                                     message.document.file_name))
                 chat_name = message.chat.title
                 if chat_name:
                     downloaded_file = bot.download_file(file_info.file_path)
@@ -101,10 +126,16 @@ def start_bot(app):
                                     log.info("DB added: " + yd_path)
                             else:
                                 bot.delete_message(message.chat.id, message.message_id)
-                                bot.send_message(message.chat.id, text="Дубликат в яндекс-диске")
+                                text = "ДУБЛИКАТ. {0} уже есть в {1}".format(message.document.file_name, yd_path)
+                                bot.send_message(message.chat.id, text)
                     os.remove(local_path)
+            except ApiException as ae:
+                log.error('{0}'.format(ae))
+                if "file is too big" in ae.args[0]:
+                    bot.reply_to(message, "Файл слишком большой. Залейте вручную")
             except BaseException as e:
                 log.error('{0}'.format(e))
+                bot.reply_to(message, "Файл не скачался. Повторите")
 
     @bot.message_handler(func=lambda message: message.chat.title is None and is_extension_ok(message),
                          content_types=['document'])
