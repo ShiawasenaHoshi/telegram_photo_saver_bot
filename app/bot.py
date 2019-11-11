@@ -20,6 +20,33 @@ class Bot(threading.Thread):
         self.app = app
         self.admin = admin_id
 
+    def get_upload_folder(self, chat_name, folder_date=None):
+        if folder_date is None:
+            path = self.yd_download_f + "/" + chat_name
+        else:
+            if isinstance(folder_date, datetime.datetime):
+                name = folder_date.strftime('%Y_%m_%d')
+                path = self.get_upload_folder(chat_name) + "/" + name
+            else:
+                name = str(folder_date)
+                path = self.get_upload_folder(chat_name) + "/" + name
+        if not self.y.exists(path):
+            try:
+                self.y.mkdir(path)
+            except BaseException as e:
+                self.l.error('{0}'.format(e))
+        return path
+
+    @staticmethod
+    def get_yd_name(message, dt):
+        return dt.strftime('%H_%M_%S') + "_" + message.document.file_name
+
+    @staticmethod
+    def is_extension_ok(message):
+        if message.document is None:
+            return False
+        return re.search('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type).group(0) is not None
+
     def run(self):
         app = self.app
         self.l = app.logger
@@ -146,30 +173,3 @@ class Bot(threading.Thread):
                     self.l.info("File deleted from {0}".format(yd_path))
 
         self.b.polling(none_stop=True)
-
-    def get_upload_folder(self, chat_name, folder_date=None):
-        if folder_date is None:
-            path = self.yd_download_f + "/" + chat_name
-        else:
-            if isinstance(folder_date, datetime.datetime):
-                name = folder_date.strftime('%Y_%m_%d')
-                path = self.get_upload_folder(chat_name) + "/" + name
-            else:
-                name = str(folder_date)
-                path = self.get_upload_folder(chat_name) + "/" + name
-        if not self.y.exists(path):
-            try:
-                self.y.mkdir(path)
-            except BaseException as e:
-                self.l.error('{0}'.format(e))
-        return path
-
-    @staticmethod
-    def get_yd_name(message, dt):
-        return dt.strftime('%H_%M_%S') + "_" + message.document.file_name
-
-    @staticmethod
-    def is_extension_ok(message):
-        if message.document is None:
-            return False
-        return re.search('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type).group(0) is not None
