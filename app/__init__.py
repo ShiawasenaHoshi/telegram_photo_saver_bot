@@ -68,15 +68,15 @@ def start_bot(app):
         def get_direct_link(message):
             yd_path = Config.YD_DOWNLOAD_FOLDER + "/" + message.chat.title
             link = y.get_download_link(yd_path)
-            bot.reply_to(message, "Архив с фотками: " + link)
+            bot.send_message(message.chat.id, "Архив с фотками: " + link)
 
         @bot.message_handler(commands=['link'], func=lambda
                 message: message.chat.title is not None and message.from_user.id == int(Config.TG_ADMIN_ID))
         def get_public_link(message):
             yd_path = Config.YD_DOWNLOAD_FOLDER + "/" + message.chat.title
-            link_obj = y.publish(path=yd_path, fields=["public_url"])
-            link = y.get_public_download_link(link_obj.FIELDS['href'])
-            bot.reply_to(message, "Фотки здесь: " + link)
+            y.publish(path=yd_path, fields=["public_url"])
+            link = y.get_meta(yd_path).public_url
+            bot.send_message(message.chat.id, "Фотки здесь: " + link)
 
         @bot.message_handler(content_types=["group_chat_created", "migrate_to_chat_id", "migrate_from_chat_id"])
         def group_chat_created(message):
