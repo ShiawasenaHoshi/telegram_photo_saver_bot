@@ -61,21 +61,41 @@ class Bot(threading.Thread):
         from app.models import Chat, Photo
         self.get_upload_folder("")
 
-        @bot.message_handler(commands=['start', 'help'], func=lambda
+        @bot.message_handler(commands=['init'], func=lambda
+                message: message.chat.title is not None and message.from_user.id == int(self.admin))
+        def init_chat(message):
+            with app.app_context():
+                if not is_initialized(message):
+                    if not Chat.is_exists(message.chat.id):
+                        try:
+                            Chat.save_to_db(message.chat.id, message.chat.title)
+                        except BaseException as e:
+                            self.l.error('{0}'.format(e))
+                    self.get_upload_folder(chat_name=message.chat.title)
+
+        def is_initialized(message):
+            with app.app_context():
+                return Chat.is_exists(message.chat.id)
+
+        @bot.message_handler(commands=['start'], func=lambda
                 message: message.chat.title is not None and message.from_user.id == int(self.admin))
         def send_welcome(message):
-            bot.reply_to(message,
-                         "Привет! Я бот для скачивания фоток в яндекс. Не пытайтесь кидать фотки не файлами - я их удалю. Не меняйте название чата. Не удаляйте фотки в чате напрямую - скидывайте мне и я удалю их сам. Чтобы получить инструкцию о правильной заливке фото напишите мне в ЛС: /help")
+            if not is_initialized(message):
+                init_chat(message)
+                bot.send_message(message.chat.id,
+                                 "Привет! Я бот для скачивания фоток в яндекс. Не пытайтесь кидать фотки не файлами - я их удалю. Не меняйте название чата. Не удаляйте фотки в чате напрямую - скидывайте мне и я удалю их сам. Чтобы получить инструкцию о правильной заливке фото напишите мне в ЛС: /help")
 
         @bot.message_handler(commands=['direct_link'], func=lambda
-                message: message.chat.title is not None and message.from_user.id == int(self.admin))
+                message: is_initialized(message) and message.chat.title is not None and message.from_user.id == int(
+            self.admin))
         def get_direct_link(message):
             yd_path = self.yd_download_f + "/" + message.chat.title
             link = self.y.get_download_link(yd_path)
             bot.send_message(message.chat.id, "Архив с фотками: " + link)
 
         @bot.message_handler(commands=['link'], func=lambda
-                message: message.chat.title is not None and message.from_user.id == int(self.admin))
+                message: is_initialized(message) and message.chat.title is not None and message.from_user.id == int(
+            self.admin))
         def get_public_link(message):
             yd_path = self.yd_download_f + "/" + message.chat.title
             self.y.publish(path=yd_path, fields=["public_url"])
@@ -89,7 +109,8 @@ class Bot(threading.Thread):
         # @bot.message_handler(content_types=["photo"], func=lambda
         #         message: message.chat.title is not None and message.from_user.id != int(self.admin))
 
-        @bot.message_handler(content_types=["photo"], func=lambda message: message.chat.title is not None)
+        @bot.message_handler(content_types=["photo"],
+                             func=lambda message: is_initialized(message) and message.chat.title is not None)
         def delete_compressed_image(message):
             save_file(message, True)
             bot.delete_message(message.chat.id, message.message_id)
@@ -99,8 +120,9 @@ class Bot(threading.Thread):
                 bot.send_message(message.chat.id, text)
                 self.photo_warn_last_time = timestamp
 
-        @bot.message_handler(func=lambda message: message.chat.title and Bot.is_extension_ok(message),
-                             content_types=['document'])
+        @bot.message_handler(
+            func=lambda message: is_initialized(message) and message.chat.title and Bot.is_extension_ok(message),
+            content_types=['document'])
         def save_file(message, allow_compressed=False):
             try:
                 if allow_compressed:
@@ -156,8 +178,10 @@ class Bot(threading.Thread):
                 if not allow_compressed:
                     bot.reply_to(message, "Файл не скачался. Повторите")
 
-        @bot.message_handler(func=lambda message: message.chat.title is None and Bot.is_extension_ok(message),
-                             content_types=['document'])
+        @bot.message_handler(
+            func=lambda message: message.chat.title is None and Bot.is_extension_ok(
+                message),
+            content_types=['document'])
         def delete_file(message):
             with app.app_context():
                 file_info = bot.get_file(message.document.file_id)
