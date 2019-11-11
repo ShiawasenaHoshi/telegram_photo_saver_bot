@@ -10,6 +10,7 @@ from yadisk import yadisk
 
 
 class Bot(threading.Thread):
+
     def __init__(self, tg_token, download_folder, yd_token, yd_download_folder, admin_id, app):
         super().__init__()
         self.tg_token = tg_token
@@ -53,6 +54,8 @@ class Bot(threading.Thread):
         self.l.info("Bot started")
         self.y = yadisk.YaDisk(token=self.yd_token)
         self.b = telebot.TeleBot(self.tg_token)
+        self.photo_warn_last_time = 0
+        self.photo_warn_timeout = 60
         bot = self.b
         from app import db
         from app.models import Chat, Photo
@@ -85,12 +88,16 @@ class Bot(threading.Thread):
 
         # @bot.message_handler(content_types=["photo"], func=lambda
         #         message: message.chat.title is not None and message.from_user.id != int(self.admin))
-        @bot.message_handler(content_types=["photo"], func=lambda
-                message: message.chat.title is not None)
+
+        @bot.message_handler(content_types=["photo"], func=lambda message: message.chat.title is not None)
         def delete_compressed_image(message):
             save_file(message, True)
             bot.delete_message(message.chat.id, message.message_id)
-            bot.send_message(message.chat.id, "Фотографии можно отправлять только файлом")
+            timestamp = datetime.datetime.now().timestamp()
+            if self.photo_warn_timeout + self.photo_warn_last_time <= timestamp:
+                text = "@{0} фотографии можно отправлять только файлом".format(message.from_user.username)
+                bot.send_message(message.chat.id, text)
+                self.photo_warn_last_time = timestamp
 
         @bot.message_handler(func=lambda message: message.chat.title and Bot.is_extension_ok(message),
                              content_types=['document'])
