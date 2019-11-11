@@ -56,24 +56,31 @@ class Bot(threading.Thread):
         def group_chat_created(message):
             pass
 
+        # @bot.message_handler(content_types=["photo"], func=lambda
+        #         message: message.chat.title is not None and message.from_user.id != int(self.admin))
         @bot.message_handler(content_types=["photo"], func=lambda
-                message: message.chat.title is not None and message.from_user.id != int(self.admin))
+                message: message.chat.title is not None)
         def delete_compressed_image(message):
+            save_file(message, True)
             bot.delete_message(message.chat.id, message.message_id)
             bot.send_message(message.chat.id, "Фотографии можно отправлять только файлом")
 
         @bot.message_handler(func=lambda message: message.chat.title and Bot.is_extension_ok(message),
                              content_types=['document'])
-        def save_file(message):
+        def save_file(message, allow_compressed=False):
             try:
-                file_info = bot.get_file(message.document.file_id)
+                if allow_compressed:
+                    file_info = bot.get_file(message.photo[1].file_id)
+                else:
+                    file_info = bot.get_file(message.document.file_id)
+                file_name = file_info.file_path.replace("/", "_")
+                file_id = file_info.file_id
                 self.l.info(
-                    '{0} {1} {2} downloading'.format(message.message_id, message.document.file_id,
-                                                     message.document.file_name))
+                    '{0} {1} {2} downloading'.format(message.message_id, file_id, file_name))
                 chat_name = message.chat.title
                 if chat_name:
                     downloaded_file = bot.download_file(file_info.file_path)
-                    local_path = self.download_f + "/" + message.document.file_id + "_" + message.document.file_name
+                    local_path = self.download_f + "/" + file_id + "_" + file_name
                     with open(local_path, 'w+b') as new_file:
                         new_file.write(downloaded_file)
                     with open(local_path, 'rb') as image_file:
@@ -82,9 +89,10 @@ class Bot(threading.Thread):
                             dt_str = img.datetime
                             dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
                             yd_path = self.get_upload_folder(chat_name, dt) + "/" + self.get_yd_name(message, dt)
+                        elif allow_compressed:
+                            yd_path = self.get_upload_folder(chat_name, "photos") + "/" + file_id + "_" + file_name
                         else:
-                            yd_path = self.get_upload_folder(chat_name,
-                                                             "no_exif") + "/" + message.document.file_id + "_" + message.document.file_name
+                            yd_path = self.get_upload_folder(chat_name, "no_exif") + "/" + file_id + "_" + file_name
                     with open(local_path, "rb") as f:
                         with app.app_context():
                             if not Chat.is_exists(message.chat.id):
@@ -94,13 +102,15 @@ class Bot(threading.Thread):
                                     self.l.error('{0}'.format(e))
                             if not self.y.exists(yd_path):
                                 self.y.upload(f, yd_path)
-                                self.l.info("YD uploaded {0} into {1}".format(message.document.file_name, yd_path))
+                                self.l.info("YD uploaded {0} into {1}".format(file_name, yd_path))
                                 if not Photo.is_exists(message.chat.id, local_path):
                                     Photo.save_to_db(local_path, message, yd_path)
                                     self.l.info("DB added: " + yd_path)
+                            elif allow_compressed:
+                                pass
                             else:
                                 bot.delete_message(message.chat.id, message.message_id)
-                                text = "ДУБЛИКАТ. {0} уже есть в {1}".format(message.document.file_name, yd_path)
+                                text = "ДУБЛИКАТ. {0} уже есть в {1}".format(file_name, yd_path)
                                 bot.send_message(message.chat.id, text)
                     os.remove(local_path)
             except ApiException as ae:
@@ -109,7 +119,8 @@ class Bot(threading.Thread):
                     bot.reply_to(message, "Файл слишком большой. Залейте вручную")
             except BaseException as e:
                 self.l.error('{0}'.format(e))
-                bot.reply_to(message, "Файл не скачался. Повторите")
+                if not allow_compressed:
+                    bot.reply_to(message, "Файл не скачался. Повторите")
 
         @bot.message_handler(func=lambda message: message.chat.title is None and Bot.is_extension_ok(message),
                              content_types=['document'])
