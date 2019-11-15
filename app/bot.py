@@ -22,19 +22,15 @@ class Bot(threading.Thread):
         self.yd_download_f = yd_download_folder
         self.app = app
         self.admin = admin_id
-
-    @staticmethod
-    def get_yd_name(message, dt):
-        return dt.strftime('%H_%M_%S') + "_" + message.document.file_name
-
-    def run(self):
-        app = self.app
         self.l = app.logger
-        self.l.info("Bot started")
         self.y = yadisk.YaDisk(token=self.yd_token)
         self.b = telebot.TeleBot(self.tg_token)
         self.photo_warn_last_time = 0
         self.photo_warn_timeout = 60
+
+    def run(self):
+        app = self.app
+        self.l.info("Bot started")
         bot = self.b
         from app import db
         from app.models import Chat, Photo
