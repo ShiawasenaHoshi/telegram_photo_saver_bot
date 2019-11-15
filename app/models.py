@@ -57,6 +57,7 @@ class Chat(db.Model):
     name = db.Column(db.String(240), nullable=False)
     local_folder = db.Column(db.String(240), nullable=False)
     yd_folder = db.Column(db.String(240), nullable=False)
+    options = db.relationship('ChatOption', backref='chat', lazy='dynamic')
 
     @staticmethod
     def save_to_db(chat_id, chat_name):
@@ -69,6 +70,14 @@ class Chat(db.Model):
         db.session.commit()
         return chat
 
+    def add_option(self, key, value):
+        co = ChatOption()
+        co.chat_id = self.id
+        co.key = key
+        co.value = value
+        db.session.add(co)
+        db.session.commit()
+
     @staticmethod
     def is_exists(id):
         return Chat.get_chat(id=id) is not None
@@ -76,3 +85,18 @@ class Chat(db.Model):
     @staticmethod
     def get_chat(id):
         return Chat.query.filter_by(id=id).first()
+
+
+class ChatOption(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'))
+    key = db.Column(db.String(50), nullable=False)
+    value = db.Column(db.String(240))
+
+    @staticmethod
+    def get_val(chat, key):
+        return ChatOption.query.filter_by(chat_id=chat.id, key=key).first()
+
+    __table_args__ = (
+        db.Index('ix_option_chat_key', chat_id, key),
+    )

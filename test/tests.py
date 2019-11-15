@@ -1,12 +1,13 @@
 import os
 import unittest
 
-
 from app.generic import calc_hash
+from app.models import Chat, ChatOption
 from config import Config
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_path = os.path.join(basedir, 'data')
+
 
 class TestConfig(Config):
     TESTING = True
@@ -15,7 +16,9 @@ class TestConfig(Config):
     TG_ADMIN_ID = 0
     YD_TOKEN = ""
 
+
 from app import create_app, db
+
 
 class SimpleTest(unittest.TestCase):
     def setUp(self):
@@ -34,3 +37,19 @@ class SimpleTest(unittest.TestCase):
         hash2 = calc_hash(os.path.join(data_path, '2.jpg'))
         self.assertNotEqual(hash1, hash2)
         self.assertEqual(hash1, calc_hash(os.path.join(data_path, '1.jpg')))
+
+    def test_models(self):
+        Chat.save_to_db(1, "test1")
+        ch = Chat.get_chat(1)
+        self.assertEqual(1, ch.id)
+        self.assertEqual("test1", ch.name)
+        o = ch.options.all()
+        self.assertFalse(o)
+        ch.add_option("test_key", "test_val")
+        o = ch.options.all()
+        self.assertTrue(o)
+        self.assertEqual("test_key", o[0].key)
+        self.assertEqual("test_val", o[0].value)
+        self.assertIsNotNone(o[0].chat)
+        self.assertIsNotNone(ChatOption.get_val(ch, "test_key"))
+        self.assertIsNone(ChatOption.get_val(ch, "test_val"))

@@ -102,12 +102,11 @@ class Bot(threading.Thread):
             link = self.y.get_meta(yd_path).public_url
             bot.send_message(message.chat.id, "Фотки здесь: " + link)
 
-
         @bot.message_handler(commands=['space'], func=lambda
                 message: message.from_user.id == int(self.admin) and message.chat.title is None)
         def yd_ls(message):
             info_obj = self.y.get_disk_info()
-            text = "Доступно {0:.3f} ГБ".format((info_obj.total_space -info_obj.used_space)/(1024*1024*1024))
+            text = "Доступно {0:.3f} ГБ".format((info_obj.total_space - info_obj.used_space) / (1024 * 1024 * 1024))
             bot.send_message(message.chat.id, text)
 
         @bot.message_handler(content_types=["group_chat_created", "migrate_to_chat_id", "migrate_from_chat_id"])
@@ -194,7 +193,6 @@ class Bot(threading.Thread):
                 self.l.error('{0}'.format(e))
                 if not allow_compressed:
                     bot.reply_to(message, "Файл не скачался. Повторите")
-
 
         @bot.message_handler(
             func=lambda message: message.chat.title is None and Bot.is_extension_ok(
