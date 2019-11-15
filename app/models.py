@@ -55,8 +55,6 @@ class Photo(db.Model):
 class Chat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(240), nullable=False)
-    local_folder = db.Column(db.String(240), nullable=False)
-    yd_folder = db.Column(db.String(240), nullable=False)
     options = db.relationship('ChatOption', backref='chat', lazy='dynamic')
 
     @staticmethod
@@ -64,13 +62,17 @@ class Chat(db.Model):
         chat = Chat()
         chat.id = chat_id
         chat.name = chat_name
-        chat.local_folder = Config.DOWNLOAD_FOLDER + "/" + chat.name
-        chat.yd_folder = Config.YD_DOWNLOAD_FOLDER + "/" + chat.name
         db.session.add(chat)
         def_options = chat._get_default_options()
         db.session.add_all(def_options)
         db.session.commit()
         return chat
+
+    def get_local_folder(self):
+        return Config.DOWNLOAD_FOLDER + "/" + self.name
+
+    def get_yd_folder(self):
+        return Config.YD_DOWNLOAD_FOLDER + "/" + self.name
 
     def add_option(self, key, value):
         co = ChatOption(self, key, value)
