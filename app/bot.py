@@ -40,8 +40,6 @@ class Bot(threading.Thread):
         from app.models import Chat, Photo
         create_yd_folder_if_not_exist(self.yd_download_f, self.y)
 
-        # self.get_upload_folder("") #todo remove
-
         def check_chat_option(message, name, value=None):
             with app.app_context():
                 if value:
