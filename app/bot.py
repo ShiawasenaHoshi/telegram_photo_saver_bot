@@ -46,7 +46,7 @@ class Bot(threading.Thread):
     def is_extension_ok(message):
         if message.document is None:
             return False
-        return re.search('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type).group(0) is not None
+        return re.match('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type)
 
     def run(self):
         app = self.app
@@ -143,8 +143,17 @@ class Bot(threading.Thread):
                         img = Image(image_file)
                         if img.has_exif:
                             dt_str = img.datetime
-                            dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
-                            yd_path = self.get_upload_folder(chat_name, dt) + "/" + self.get_yd_name(message, dt)
+                            try:
+                                dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
+                                yd_path = self.get_upload_folder(chat_name, dt) + "/" + self.get_yd_name(message, dt)
+                            except BaseException as e:
+                                if re.match("^\d+$", dt_str):
+                                    dt = datetime.datetime.fromtimestamp(int(dt_str)/1000)
+                                    yd_path = self.get_upload_folder(chat_name, dt) + "/" + self.get_yd_name(message,
+                                                                                                             dt)
+                                else:
+                                    yd_path = self.get_upload_folder(chat_name,
+                                                                     "unparsed") + "/" + file_id + "_" + file_name
                         elif allow_compressed:
                             yd_path = self.get_upload_folder(chat_name, "photos") + "/" + file_id + "_" + file_name
                         else:
