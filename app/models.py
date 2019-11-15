@@ -67,16 +67,21 @@ class Chat(db.Model):
         chat.local_folder = Config.DOWNLOAD_FOLDER + "/" + chat.name
         chat.yd_folder = Config.YD_DOWNLOAD_FOLDER + "/" + chat.name
         db.session.add(chat)
+        def_options = chat._get_default_options()
+        db.session.add_all(def_options)
         db.session.commit()
         return chat
 
     def add_option(self, key, value):
-        co = ChatOption()
-        co.chat_id = self.id
-        co.key = key
-        co.value = value
+        co = ChatOption(self, key, value)
         db.session.add(co)
         db.session.commit()
+
+    def _get_default_options(self):
+        return [
+            ChatOption(self, "photo_allowed", "0"),
+            ChatOption(self, "doc_mime_filter", "^.+/(jpg|jpeg|avi|mov|mp4)$")
+        ]
 
     @staticmethod
     def is_exists(id):
@@ -93,10 +98,16 @@ class ChatOption(db.Model):
     key = db.Column(db.String(50), nullable=False)
     value = db.Column(db.String(240))
 
+    def __init__(self, chat, key, value):
+        self.chat_id = chat.id
+        self.key = key
+        self.value = value
+
     @staticmethod
     def get_val(chat, key):
         return ChatOption.query.filter_by(chat_id=chat.id, key=key).first()
 
     __table_args__ = (
-        db.Index('ix_option_chat_key', chat_id, key),
+        # db.UniqueConstraint('ct_chat_key', chat_id, key),
+        db.UniqueConstraint('chat_id', 'key', name='uc_chat_key'),
     )
