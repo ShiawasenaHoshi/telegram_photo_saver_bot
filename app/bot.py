@@ -8,6 +8,8 @@ from exif import Image
 from telebot.apihelper import ApiException
 from yadisk import yadisk
 
+from app.models import ChatOption
+
 
 class Bot(threading.Thread):
 
@@ -42,12 +44,6 @@ class Bot(threading.Thread):
     def get_yd_name(message, dt):
         return dt.strftime('%H_%M_%S') + "_" + message.document.file_name
 
-    @staticmethod
-    def is_extension_ok(message):
-        if message.document is None:
-            return False
-        return re.match('^.+/(jpg|jpeg|avi|mov|mp4)$', message.document.mime_type)
-
     def run(self):
         app = self.app
         self.l = app.logger
@@ -60,6 +56,23 @@ class Bot(threading.Thread):
         from app import db
         from app.models import Chat, Photo
         self.get_upload_folder("")
+
+        def check_chat_option(message, name, value=None):
+            with app.app_context():
+                if value:
+                    return ChatOption.get_val(message.chat.id, name) == value
+                else:
+                    return ChatOption.get_val(message.chat.id, name) == "1"
+
+        def write_chat_option(message, name, value):
+            with app.app_context():
+                ChatOption.set_val(message.chat.id, name, value)
+
+        def is_extension_ok(message):
+            if message.document is None:
+                return False
+            with app.app_context():
+                return re.match(ChatOption.get_val(message.chat.id, "doc_mime_filter"), message.document.mime_type)
 
         @bot.message_handler(commands=['init'], func=lambda
                 message: message.chat.title is not None and message.from_user.id == int(self.admin))
@@ -102,6 +115,17 @@ class Bot(threading.Thread):
             link = self.y.get_meta(yd_path).public_url
             bot.send_message(message.chat.id, "Фотки здесь: " + link)
 
+        @bot.message_handler(commands=['photo_toggle'], func=lambda
+                message: is_initialized(message) and message.chat.title is not None and message.from_user.id == int(
+            self.admin))
+        def compressed_toggle(message):
+            if check_chat_option(message, "photo_allowed"):
+                write_chat_option(message, "photo_allowed", "0")
+                bot.send_message(message.chat.id, "Сжатые фото запрещены")
+            else:
+                write_chat_option(message, "photo_allowed", "1")
+                bot.send_message(message.chat.id, "Сжатые фото разрешены")
+
         @bot.message_handler(commands=['space'], func=lambda
                 message: message.from_user.id == int(self.admin) and message.chat.title is None)
         def yd_ls(message):
@@ -113,22 +137,20 @@ class Bot(threading.Thread):
         def group_chat_created(message):
             pass
 
-        # @bot.message_handler(content_types=["photo"], func=lambda
-        #         message: message.chat.title is not None and message.from_user.id != int(self.admin))
-
         @bot.message_handler(content_types=["photo"],
                              func=lambda message: is_initialized(message) and message.chat.title is not None)
         def delete_compressed_image(message):
             save_file(message, True)
-            bot.delete_message(message.chat.id, message.message_id)
-            timestamp = datetime.datetime.now().timestamp()
-            if self.photo_warn_timeout + self.photo_warn_last_time <= timestamp:
-                text = "@{0} фотографии можно отправлять только файлом".format(message.from_user.username)
-                bot.send_message(message.chat.id, text)
-                self.photo_warn_last_time = timestamp
+            if not check_chat_option(message, "photo_allowed"):
+                bot.delete_message(message.chat.id, message.message_id)
+                timestamp = datetime.datetime.now().timestamp()
+                if self.photo_warn_timeout + self.photo_warn_last_time <= timestamp:
+                    text = "@{0} фотографии можно отправлять только файлом".format(message.from_user.username)
+                    bot.send_message(message.chat.id, text)
+                    self.photo_warn_last_time = timestamp
 
         @bot.message_handler(
-            func=lambda message: is_initialized(message) and message.chat.title and Bot.is_extension_ok(message),
+            func=lambda message: is_initialized(message) and message.chat.title and is_extension_ok(message),
             content_types=['document'])
         def save_file(message, allow_compressed=False):
             try:
@@ -195,7 +217,7 @@ class Bot(threading.Thread):
                     bot.reply_to(message, "Файл не скачался. Повторите")
 
         @bot.message_handler(
-            func=lambda message: message.chat.title is None and Bot.is_extension_ok(
+            func=lambda message: message.chat.title is None and is_extension_ok(
                 message),
             content_types=['document'])
         def delete_file(message):

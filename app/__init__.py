@@ -4,7 +4,6 @@ from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
-from app.bot import Bot
 from config import Config
 
 db = SQLAlchemy()
@@ -19,6 +18,7 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     app.logger.setLevel(logging.INFO)
     if not config_class.TESTING:
+        from app.bot import Bot
         Bot(Config.TG_TOKEN, Config.DOWNLOAD_FOLDER, Config.YD_TOKEN, Config.YD_DOWNLOAD_FOLDER, Config.TG_ADMIN_ID,
-                app).start()
+            app).start()
     return app

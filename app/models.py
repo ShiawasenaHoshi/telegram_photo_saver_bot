@@ -104,10 +104,23 @@ class ChatOption(db.Model):
         self.value = value
 
     @staticmethod
-    def get_val(chat, key):
-        return ChatOption.query.filter_by(chat_id=chat.id, key=key).first()
+    def get_val(chat_id, key):
+        co = ChatOption.query.filter_by(chat_id=chat_id, key=key).first()
+        if co:
+            return co.value
+        else:
+            return None
+
+    @staticmethod
+    def set_val(chat_id, key, value):
+        co = ChatOption.query.filter_by(chat_id=chat_id, key=key).first()
+        if co:
+            co.value = value
+            db.session.add(co)
+            db.session.commit()
+        else:
+            raise Exception("there is no option with name {0}".format(key))
 
     __table_args__ = (
-        # db.UniqueConstraint('ct_chat_key', chat_id, key),
         db.UniqueConstraint('chat_id', 'key', name='uc_chat_key'),
     )

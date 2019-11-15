@@ -51,8 +51,8 @@ class SimpleTest(unittest.TestCase):
         self.assertEqual("test_key", o[2].key)
         self.assertEqual("test_val", o[2].value)
         self.assertIsNotNone(o[2].chat)
-        self.assertIsNotNone(ChatOption.get_val(ch, "test_key"))
-        self.assertIsNone(ChatOption.get_val(ch, "test_val"))
+        self.assertIsNotNone(ChatOption.get_val(ch.id, "test_key"))
+        self.assertIsNone(ChatOption.get_val(ch.id, "test_val"))
         with self.assertRaises(Exception):
             ch.add_option("test_key", "exception")
 
