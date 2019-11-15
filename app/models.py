@@ -1,7 +1,10 @@
 import datetime
+import re
+
+from exif import Image
 
 from app import db
-from app.generic import calc_hash
+from app.generic import calc_hash, create_yd_folder_if_not_exist
 from config import Config
 
 
@@ -12,25 +15,54 @@ class Photo(db.Model):
     user_id = db.Column(db.Integer, nullable=False)
     msg_date = db.Column(db.DateTime, nullable=False)  # date of msg or forward_date
     msg_id = db.Column(db.Integer, nullable=False)  # mandatory for delete function
-    yd_path = db.Column(db.String(240), nullable=False)
+    yd_filename = db.Column(db.String(240), nullable=False)
+    yd_sub_folder = db.Column(db.String(240), nullable=False)
 
     @staticmethod
-    def save_to_db(file_path, message, yd_path):
-        h = calc_hash(file_path)
-        photo = Photo()
-        photo.file_hash = h
-        photo.chat_id = message.chat.id
-        photo.user_id = message.from_user.id
-        photo.msg_id = message.message_id
+    def _get_sub_folder_name(folder_date):
+        if isinstance(folder_date, datetime.datetime):
+            name = folder_date.strftime('%Y_%m_%d')
+        else:
+            name = str(folder_date)
+        return name
+
+    def __init__(self, message, local_path, file_name, file_id, allow_compressed):
+        self.yd_filename = file_id + "_" + file_name
+        h = calc_hash(local_path)
+        self.file_hash = h
+        self.chat_id = message.chat.id
+        self.user_id = message.from_user.id
+        self.msg_id = message.message_id
         if message.forward_date is not None and message.forward_date <= message.date:
             date = message.forward_date
         else:
             date = message.date
-        photo.msg_date = datetime.datetime.fromtimestamp(date)
-        photo.yd_path = yd_path
-        db.session.add(photo)
-        db.session.commit()
-        return photo
+        self.msg_date = datetime.datetime.fromtimestamp(date)
+        with open(local_path, 'rb') as image_file:
+            img = Image(image_file)
+            if img.has_exif:
+                dt_str = img.datetime
+                try:
+                    dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
+                    self.yd_sub_folder = Photo._get_sub_folder_name(dt)
+                except BaseException as e:
+                    if re.match("^\d+$", dt_str):
+                        dt = datetime.datetime.fromtimestamp(int(dt_str) / 1000)
+                        self.yd_sub_folder = Photo._get_sub_folder_name(dt)
+                    else:
+                        self.yd_sub_folder = Photo._get_sub_folder_name("unparsed")
+            elif allow_compressed:
+                self.yd_sub_folder = Photo._get_sub_folder_name("photos")
+            else:
+                self.yd_sub_folder = Photo._get_sub_folder_name("no_exif")
+
+    def get_yd_path(self, ya_disk=None):
+        ch = Chat.get_chat(self.chat_id)
+        ch_path = ch.get_yd_folder(ya_disk)
+        sub_folder_path = ch_path + "/" + self.yd_sub_folder
+        if ya_disk is not None:
+            create_yd_folder_if_not_exist(sub_folder_path, ya_disk)
+        return sub_folder_path + "/" + self.yd_filename
 
     @staticmethod
     def is_exists(chat_id, photo_file):
@@ -56,6 +88,7 @@ class Chat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(240), nullable=False)
     options = db.relationship('ChatOption', backref='chat', lazy='dynamic')
+    photos = db.relationship('Photo', backref='chat', lazy='dynamic')
 
     @staticmethod
     def save_to_db(chat_id, chat_name):
@@ -71,8 +104,11 @@ class Chat(db.Model):
     def get_local_folder(self):
         return Config.DOWNLOAD_FOLDER + "/" + self.name
 
-    def get_yd_folder(self):
-        return Config.YD_DOWNLOAD_FOLDER + "/" + self.name
+    def get_yd_folder(self, ya_disk=None):
+        path = Config.YD_DOWNLOAD_FOLDER + "/" + self.name
+        if ya_disk is not None:
+            create_yd_folder_if_not_exist(path, ya_disk)
+        return path
 
     def add_option(self, key, value):
         co = ChatOption(self, key, value)
