@@ -135,7 +135,8 @@ class Bot(threading.Thread):
 
         @bot.message_handler(content_types=["group_chat_created", "migrate_to_chat_id", "migrate_from_chat_id"])
         def group_chat_created(message):
-            pass
+            if not is_initialized(message) and message.from_user.id == int(self.admin):
+                send_welcome(message)
 
         @bot.message_handler(content_types=["photo"],
                              func=lambda message: is_initialized(message) and message.chat.title is not None)
