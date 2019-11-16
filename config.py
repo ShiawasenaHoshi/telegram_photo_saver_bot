@@ -16,7 +16,10 @@ class Config(object):
                               'sqlite:///' + os.path.join(basedir, 'app.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     TESTING = False
-    WEBHOOK_ENABLE = os.environ.get('WEBHOOK_ENABLE') or True
+    if os.environ.get('WEBHOOK_ENABLE') == '0':
+        WEBHOOK_ENABLE = False
+    else:
+        WEBHOOK_ENABLE = True
     WEBHOOK_HOST = os.environ.get('WEBHOOK_HOST')
     WEBHOOK_PORT = os.environ.get('WEBHOOK_PORT') or 8443  # 443, 80, 88 or 8443 (port need to be 'open')
     WEBHOOK_LISTEN = os.environ.get('WEBHOOK_LISTEN') or '0.0.0.0'  # In some VPS you may need to put here the IP addr

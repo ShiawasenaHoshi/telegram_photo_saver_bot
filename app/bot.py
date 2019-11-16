@@ -34,7 +34,8 @@ class Bot(threading.Thread):
 
     def run(self):
         app = self.app
-        self.l.info("Bot started")
+        self.l.info("Bot starting")
+        self.l.info("Webhook enabled: " + str(Config.WEBHOOK_ENABLE))
         bot = self.b
 
         create_yd_folder_if_not_exist(self.yd_download_f, self.y)
