@@ -40,7 +40,7 @@ class Photo(db.Model):
         self.msg_date = datetime.datetime.fromtimestamp(date)
         with open(local_path, 'rb') as image_file:
             img = Image(image_file)
-            if img.has_exif:
+            if img.has_exif and hasattr(img, 'property'):
                 dt_str = img.datetime
                 try:
                     dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
