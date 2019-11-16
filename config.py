@@ -16,13 +16,15 @@ class Config(object):
                               'sqlite:///' + os.path.join(basedir, 'app.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     TESTING = False
-    WEBHOOK_ENABLE = True
-    WEBHOOK_HOST = '196.196.203.76'
-    WEBHOOK_PORT = 8443  # 443, 80, 88 or 8443 (port need to be 'open')
-    WEBHOOK_LISTEN = '0.0.0.0'  # In some VPS you may need to put here the IP addr
+    WEBHOOK_ENABLE = os.environ.get('WEBHOOK_ENABLE') or True
+    WEBHOOK_HOST = os.environ.get('WEBHOOK_HOST')
+    WEBHOOK_PORT = os.environ.get('WEBHOOK_PORT') or 8443  # 443, 80, 88 or 8443 (port need to be 'open')
+    WEBHOOK_LISTEN = os.environ.get('WEBHOOK_LISTEN') or '0.0.0.0'  # In some VPS you may need to put here the IP addr
 
-    WEBHOOK_SSL_CERT = basedir + '/webhook_cert.pem'  # Path to the ssl certificate
-    WEBHOOK_SSL_PRIV = basedir + '/webhook_pkey.pem'  # Path to the ssl private key
+    WEBHOOK_SSL_CERT = os.environ.get(
+        'WEBHOOK_SSL_CERT') or basedir + '/webhook_cert.pem'  # Path to the ssl certificate
+    WEBHOOK_SSL_PRIV = os.environ.get(
+        'WEBHOOK_SSL_PRIV') or basedir + '/webhook_pkey.pem'  # Path to the ssl private key
 
-    WEBHOOK_URL_BASE = "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
-    WEBHOOK_URL_PATH = "/%s/" % (TG_TOKEN)
+    WEBHOOK_URL_BASE = os.environ.get('WEBHOOK_URL_BASE') or "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
+    WEBHOOK_URL_PATH = os.environ.get('WEBHOOK_URL_PATH') or "/%s/" % (TG_TOKEN)

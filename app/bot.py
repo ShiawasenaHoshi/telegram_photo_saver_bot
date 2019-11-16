@@ -41,24 +41,26 @@ class Bot(threading.Thread):
         bot.remove_webhook()
         time.sleep(0.1)
         if Config.WEBHOOK_ENABLE:
+            if not Config.WEBHOOK_HOST:
+                raise Exception("WEBHOOK_HOST is not defined")
+
             @app.route('/', methods=['GET', 'HEAD'])
             def index():
                 return ''
 
-            # Process webhook calls
             @app.route(Config.WEBHOOK_URL_PATH, methods=['POST'])
             def webhook():
                 if flask.request.headers.get('content-type') == 'application/json':
                     json_string = flask.request.get_data().decode('utf-8')
                     update = telebot.types.Update.de_json(json_string)
                     bot.process_new_updates([update])
-                    self.l.info("hook")
+                    self.l.info("hook: " + json_string)
                     return ''
                 else:
                     flask.abort(403)
 
-
-            bot.set_webhook(url=Config.WEBHOOK_URL_BASE + Config.WEBHOOK_URL_PATH, certificate=open(Config.WEBHOOK_SSL_CERT, 'r'))
+            bot.set_webhook(url=Config.WEBHOOK_URL_BASE + Config.WEBHOOK_URL_PATH,
+                            certificate=open(Config.WEBHOOK_SSL_CERT, 'r'))
 
         def check_chat_option(message, name, value=None):
             with app.app_context():
