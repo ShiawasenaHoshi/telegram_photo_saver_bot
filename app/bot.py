@@ -2,7 +2,9 @@ import datetime
 import os
 import re
 import threading
+import time
 
+import flask
 import telebot
 from telebot.apihelper import ApiException
 from yadisk import yadisk
@@ -10,6 +12,7 @@ from yadisk import yadisk
 from app import db
 from app.generic import create_yd_folder_if_not_exist
 from app.models import Chat, Photo, ChatOption
+from config import Config
 
 
 class Bot(threading.Thread):
@@ -35,6 +38,27 @@ class Bot(threading.Thread):
         bot = self.b
 
         create_yd_folder_if_not_exist(self.yd_download_f, self.y)
+        bot.remove_webhook()
+        time.sleep(0.1)
+        if Config.WEBHOOK_ENABLE:
+            @app.route('/', methods=['GET', 'HEAD'])
+            def index():
+                return ''
+
+            # Process webhook calls
+            @app.route(Config.WEBHOOK_URL_PATH, methods=['POST'])
+            def webhook():
+                if flask.request.headers.get('content-type') == 'application/json':
+                    json_string = flask.request.get_data().decode('utf-8')
+                    update = telebot.types.Update.de_json(json_string)
+                    bot.process_new_updates([update])
+                    self.l.info("hook")
+                    return ''
+                else:
+                    flask.abort(403)
+
+
+            bot.set_webhook(url=Config.WEBHOOK_URL_BASE + Config.WEBHOOK_URL_PATH, certificate=open(Config.WEBHOOK_SSL_CERT, 'r'))
 
         def check_chat_option(message, name, value=None):
             with app.app_context():
@@ -207,4 +231,5 @@ class Bot(threading.Thread):
                     db.session.commit()
                     self.l.info("File deleted from {0}".format(yd_path))
 
-        self.b.polling(none_stop=True)
+        if not Config.WEBHOOK_ENABLE:
+            self.b.polling(none_stop=True)
