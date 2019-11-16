@@ -7,8 +7,9 @@ import telebot
 from telebot.apihelper import ApiException
 from yadisk import yadisk
 
+from app import db
 from app.generic import create_yd_folder_if_not_exist
-from app.models import ChatOption
+from app.models import Chat, Photo, ChatOption
 
 
 class Bot(threading.Thread):
@@ -32,8 +33,7 @@ class Bot(threading.Thread):
         app = self.app
         self.l.info("Bot started")
         bot = self.b
-        from app import db
-        from app.models import Chat, Photo
+
         create_yd_folder_if_not_exist(self.yd_download_f, self.y)
 
         def check_chat_option(message, name, value=None):
@@ -139,7 +139,7 @@ class Bot(threading.Thread):
                         file_info = bot.get_file(message.photo[1].file_id)
                     else:
                         file_info = bot.get_file(message.document.file_id)
-                    if message.document.file_name:
+                    if message.document:
                         file_name = message.document.file_name
                     else:
                         file_name = file_info.file_path.replace("/", "_")
