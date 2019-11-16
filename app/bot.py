@@ -54,7 +54,7 @@ class Bot(threading.Thread):
                     json_string = flask.request.get_data().decode('utf-8')
                     update = telebot.types.Update.de_json(json_string)
                     bot.process_new_updates([update])
-                    self.l.info("hook: " + json_string)
+                    self.l.debug("hook: " + json_string)
                     return ''
                 else:
                     flask.abort(403)
