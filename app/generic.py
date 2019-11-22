@@ -1,4 +1,5 @@
 import hashlib
+import os
 
 
 def hash_bytestr_iter(bytesiter, hasher, ashexstr=False):
@@ -25,4 +26,8 @@ def create_yd_folder_if_not_exist(folder, ya_disk):
             ya_disk.mkdir(folder)
         except BaseException as e:
             pass
-            # self.l.error('{0}'.format(e))#fixme log
+
+
+def create_folder_if_not_exists(path):
+    if not os.path.exists(path):
+        os.makedirs(path)

@@ -10,7 +10,7 @@ from telebot.apihelper import ApiException
 from yadisk import yadisk
 
 from app import db
-from app.generic import create_yd_folder_if_not_exist
+from app.generic import create_yd_folder_if_not_exist, create_folder_if_not_exists
 from app.models import Chat, Photo, ChatOption
 from config import Config
 
@@ -35,6 +35,7 @@ class Bot(threading.Thread):
     def run(self):
         self.l.info("Bot starting")
         create_yd_folder_if_not_exist(self.yd_download_f, self.y)
+        create_folder_if_not_exists(self.download_f)
         self.init_commands()
         self.use_webhooks(Config.WEBHOOK_ENABLE)
 
