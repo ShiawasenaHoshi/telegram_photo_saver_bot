@@ -12,3 +12,8 @@ WEBHOOK_HOST=<VPS ip>
 5) ```openssl genrsa -out webhook_pkey.pem 2048; openssl req -new -x509 -days 3650 -key webhook_pkey.pem -out webhook_cert.pem```
 When asked for "Common Name (e.g. server FQDN or YOUR name)" you should reply with the same value in you put in WEBHOOK_HOST
 6) ```python start.py```
+# Run on a local machine 
+It's useful option for local debug.
+1) Do 1-4 from 'Install' section. Don't need to define WEBHOOK_HOST-var
+2) Instead of define ```WEBHOOK_HOST``` set ```WEBHOOK_ENABLE=0```
+3) ```python start.py``
