@@ -28,20 +28,22 @@ class Bot(threading.Thread):
         self.admin = admin_id
         self.l = app.logger
         self.y = yadisk.YaDisk(token=self.yd_token)
-        self.b = telebot.TeleBot(self.tg_token)
+        self.bot = telebot.TeleBot(self.tg_token)
         self.photo_warn_last_time = 0
         self.photo_warn_timeout = 60
 
     def run(self):
-        app = self.app
         self.l.info("Bot starting")
-        self.l.info("Webhook enabled: " + str(Config.WEBHOOK_ENABLE))
-        bot = self.b
-
         create_yd_folder_if_not_exist(self.yd_download_f, self.y)
+        self.init_commands()
+        self.use_webhooks(Config.WEBHOOK_ENABLE)
+
+    def use_webhooks(self, value):
+        bot = self.bot
+        app = self.app
         bot.remove_webhook()
         time.sleep(0.1)
-        if Config.WEBHOOK_ENABLE:
+        if value:
             if not Config.WEBHOOK_HOST:
                 raise Exception("WEBHOOK_HOST is not defined")
 
@@ -62,6 +64,13 @@ class Bot(threading.Thread):
 
             bot.set_webhook(url=Config.WEBHOOK_URL_BASE + Config.WEBHOOK_URL_PATH,
                             certificate=open(Config.WEBHOOK_SSL_CERT, 'r'))
+        else:
+            bot.polling(none_stop=True)
+        self.l.info("Webhook enabled: " + str(value))
+
+    def init_commands(self):
+        bot = self.bot
+        app = self.app
 
         def check_chat_option(message, name, value=None):
             with app.app_context():
@@ -233,6 +242,3 @@ class Bot(threading.Thread):
                     db.session.delete(photo)
                     db.session.commit()
                     self.l.info("File deleted from {0}".format(yd_path))
-
-        if not Config.WEBHOOK_ENABLE:
-            self.b.polling(none_stop=True)
