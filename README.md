@@ -2,8 +2,8 @@
 Bot for saving and manage photo from chats.
 # Install
 1) ```sudo apt-get install python3 git```
-2) ```git clone git@github.com:ShiawasenaHoshi/telegram_photo_saver_bot.git; cd telegram_photo_saver_bot```'
-3) ```python3 -m venv venv; source venv/bin/activate; export FLASK_APP=bot.py;pip install -r requirements.txt```
+2) ```git clone git@github.com:ShiawasenaHoshi/telegram_photo_saver_bot.git; cd telegram_photo_saver_bot```
+3) ```python3 -m venv venv; source venv/bin/activate; export FLASK_APP=bot.py;pip install -r requirements.txt; flask db upgrade```
 4) Create ```.env``` in project directory and define further variables in it:
 YD_TOKEN=<yandex disk token>
 TG_TOKEN=<telegram token>
