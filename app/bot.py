@@ -157,7 +157,7 @@ class Bot(threading.Thread):
         @bot.message_handler(content_types=["photo"],
                              func=lambda message: is_initialized(message) and message.chat.title is not None)
         def delete_compressed_image(message):
-            save_file(message, True)
+            save_file(message)
             if not check_chat_option(message, "photo_allowed"):
                 bot.delete_message(message.chat.id, message.message_id)
                 timestamp = datetime.datetime.now().timestamp()
@@ -169,16 +169,14 @@ class Bot(threading.Thread):
         @bot.message_handler(
             func=lambda message: is_initialized(message) and message.chat.title and is_extension_ok(message),
             content_types=['document'])
-        def save_file(message, allow_compressed=False):
+        def save_file(message):
             with app.app_context():
                 try:
-                    if allow_compressed:
-                        file_info = bot.get_file(message.photo[1].file_id)
-                    else:
-                        file_info = bot.get_file(message.document.file_id)
                     if message.document:
+                        file_info = bot.get_file(message.document.file_id)
                         file_name = message.document.file_name
                     else:
+                        file_info = bot.get_file(message.photo[1].file_id)
                         file_name = file_info.file_path.replace("/", "_")
                     file_id = file_info.file_id
                     self.l.info(
@@ -189,7 +187,7 @@ class Bot(threading.Thread):
                         local_path = self.download_f + "/" + file_id + "_" + file_name
                         with open(local_path, 'w+b') as new_file:
                             new_file.write(downloaded_file)
-                        photo = Photo(message, local_path, file_name, file_id, allow_compressed)
+                        photo = Photo(message, local_path, file_name, file_id)
                         yd_path = photo.get_yd_path(self.y)
                         with open(local_path, "rb") as f:
 
@@ -205,11 +203,9 @@ class Bot(threading.Thread):
                                     db.session.add(photo)
                                     db.session.commit()
                                     self.l.info("DB added: " + yd_path)
-                            elif allow_compressed:
-                                pass
                             else:
                                 bot.delete_message(message.chat.id, message.message_id)
-                                text = "ДУБЛИКАТ. {0} уже есть в {1}".format(file_name, yd_path)
+                                text = "{0} дубликат".format(file_name)
                                 bot.send_message(message.chat.id, text)
                         os.remove(local_path)
                 except ApiException as ae:
@@ -218,8 +214,7 @@ class Bot(threading.Thread):
                         bot.reply_to(message, "Файл слишком большой. Залейте вручную")
                 except BaseException as e:
                     self.l.error('{0}'.format(e))
-                    if not allow_compressed:
-                        bot.reply_to(message, "Файл не скачался. Повторите")
+                    bot.reply_to(message, "Файл не скачался. Повторите")
 
         @bot.message_handler(
             func=lambda message: message.chat.title is None, content_types=['document'])

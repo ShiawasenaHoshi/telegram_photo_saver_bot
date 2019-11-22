@@ -26,7 +26,7 @@ class Photo(db.Model):
             name = str(folder_date)
         return name
 
-    def __init__(self, message, local_path, file_name, file_id, allow_compressed):
+    def __init__(self, message, local_path, file_name, file_id):
         self.yd_filename = file_id + "_" + file_name
         h = calc_hash(local_path)
         self.file_hash = h
@@ -51,10 +51,8 @@ class Photo(db.Model):
                         self.yd_sub_folder = Photo._get_sub_folder_name(dt)
                     else:
                         self.yd_sub_folder = Photo._get_sub_folder_name("unparsed")
-            elif allow_compressed:
-                self.yd_sub_folder = Photo._get_sub_folder_name("photos")
             else:
-                self.yd_sub_folder = Photo._get_sub_folder_name("no_exif")
+                self.yd_sub_folder = Photo._get_sub_folder_name("photos")
 
     def get_yd_path(self, ya_disk=None):
         ch = Chat.get_chat(self.chat_id)
