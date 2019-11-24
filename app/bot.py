@@ -189,7 +189,13 @@ class Bot(threading.Thread):
                             new_file.write(downloaded_file)
                         photo = Photo(local_path, file_name, message)
 
-                        upload_photo(photo, local_path, message.chat.title)
+                        if not upload_photo(photo, local_path, chat_name):
+                            bot.delete_message(photo.chat_id, photo.msg_id)
+                            text = "{0} дубликат".format(photo.yd_filename)
+                            self.l.info(
+                                '{0} {1} {2} duplicate'.format(message.message_id, file_id, file_name))
+                            bot.send_message(photo.chat_id, text)
+
                 except ApiException as ae:
                     self.l.error('{0}'.format(ae))
                     if "file is too big" in ae.args[0]:
@@ -200,8 +206,8 @@ class Bot(threading.Thread):
 
         def upload_photo(photo, local_path, chat_title):
             yd_path = photo.get_yd_path(self.y)
+            uploaded = False
             with open(local_path, "rb") as f:
-
                 if not Chat.is_exists(photo.chat_id):
                     try:
                         Chat.save_to_db(photo.chat_id, chat_title)
@@ -214,11 +220,9 @@ class Bot(threading.Thread):
                         db.session.add(photo)
                         db.session.commit()
                         self.l.info("DB added: " + yd_path)
-                else:
-                    bot.delete_message(photo.chat_id, photo.msg_id)
-                    text = "{0} дубликат".format(photo.yd_filename)
-                    bot.send_message(photo.chat_id, text)
+                    uploaded = True
             os.remove(local_path)
+            return uploaded
 
         @bot.message_handler(
             func=lambda message: message.chat.title is None, content_types=['document'])
