@@ -10,7 +10,7 @@ from yadisk import yadisk
 
 from app import db
 from app.generic import create_yd_folder_if_not_exist, create_folder_if_not_exists
-from app.local_uploader import Uploader
+from app.uploader import Uploader
 from app.models import Chat, Photo, ChatOption
 from config import Config
 

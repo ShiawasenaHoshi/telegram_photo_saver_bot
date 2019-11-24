@@ -1,12 +1,15 @@
 import os
 import threading
+import time
 from os import listdir
 from os.path import isfile, join
 
 from yadisk import yadisk
 
 from app import db
+from app.generic import create_folder_if_not_exists
 from app.models import Photo, Chat
+from config import Config
 
 
 class Uploader(threading.Thread):
@@ -20,20 +23,28 @@ class Uploader(threading.Thread):
         self.app = app
         self.l = app.logger
         self.y = yadisk.YaDisk(token=self.yd_token)
+        create_folder_if_not_exists(Config.SCANNER_FOLDER)
+
+    def run(self):
+        self.l.info("Uploader starting")
+        while True:
+            self.scan_and_upload()
+            time.sleep(self.scan_interval)
 
     def scan_and_upload(self):
         onlyfiles = [f for f in listdir(self.scanner_folder) if isfile(join(self.scanner_folder, f))]
-        for local_path in onlyfiles:
-            photo = Photo(local_path, None, None)
-            if not self.upload_photo(photo, local_path):
+        for file_name in onlyfiles:
+            path = join(self.scanner_folder, file_name)
+            photo = Photo(path, file_name, None)
+            if not self.upload_photo(photo, path):
                 self.l.info('{0} duplicate'.format(photo.get_yd_path()))
 
     def upload_photo(self, photo, local_path):
-        return Uploader.upload(self.y, self.l, photo, local_path, "FolderScanner")
+        with self.app.app_context():
+            return Uploader.upload(self.y, self.l, photo, local_path, "FolderScanner")
 
     @staticmethod
     def upload(yd, log, photo, local_path, chat_title):
-        yd_path = photo.get_yd_path(yd)
         uploaded = False
         with open(local_path, "rb") as f:
             if not Chat.is_exists(photo.chat_id):
@@ -41,6 +52,7 @@ class Uploader(threading.Thread):
                     Chat.save_to_db(photo.chat_id, chat_title)
                 except BaseException as e:
                     log.error('{0}'.format(e))
+            yd_path = photo.get_yd_path(yd)
             if not yd.exists(yd_path):
                 yd.upload(f, yd_path)
                 log.info("YD uploaded: {0}".format(yd_path))

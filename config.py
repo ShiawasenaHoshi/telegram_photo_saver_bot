@@ -10,6 +10,7 @@ class Config(object):
     TG_TOKEN = os.environ.get('TG_TOKEN')
     TG_ADMIN_ID = os.environ.get('TG_ADMIN_ID')
     DOWNLOAD_FOLDER = os.environ.get('DOWNLOAD_FOLDER') or os.path.join(basedir, 'download')
+
     YD_TOKEN = os.environ.get('YD_TOKEN')
     YD_DOWNLOAD_FOLDER = os.environ.get('YD_DOWNLOAD_FOLDER') or "/tg_photo_saver"
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
@@ -31,3 +32,13 @@ class Config(object):
 
     WEBHOOK_URL_BASE = os.environ.get('WEBHOOK_URL_BASE') or "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
     WEBHOOK_URL_PATH = os.environ.get('WEBHOOK_URL_PATH') or "/%s/" % (TG_TOKEN)
+
+    SCANNER_FOLDER = os.environ.get('SCANNER_FOLDER') or os.path.join(basedir, 'scanner')
+    if os.environ.get('SCANNER_ENABLE') == '1':
+        SCANNER_ENABLE = True
+    else:
+        SCANNER_ENABLE = False
+    if os.environ.get('BOT_ENABLE') == '0':
+        BOT_ENABLE = False
+    else:
+        BOT_ENABLE = True
