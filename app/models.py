@@ -1,4 +1,5 @@
 import datetime
+import os
 import re
 
 from exif import Image
@@ -26,8 +27,12 @@ class Photo(db.Model):
             name = str(folder_date)
         return name
 
-    def __init__(self, message, local_path, file_name, file_id):
-        self.yd_filename = file_id + "_" + file_name
+    @staticmethod
+    def _get_filename(exif_date, original_name):
+        return "{0}_{1}".format(exif_date.strftime('%H_%M_%S'), original_name)
+
+    def __init__(self, message, local_path, file_name):
+        self.yd_filename = os.path.basename(local_path)
         h = calc_hash(local_path)
         self.file_hash = h
         self.chat_id = message.chat.id
@@ -45,10 +50,12 @@ class Photo(db.Model):
                 try:
                     dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
                     self.yd_sub_folder = Photo._get_sub_folder_name(dt)
+                    self.yd_filename = Photo._get_filename(dt, file_name)
                 except BaseException as e:
                     if re.match("^\d+$", dt_str):
                         dt = datetime.datetime.fromtimestamp(int(dt_str) / 1000)
                         self.yd_sub_folder = Photo._get_sub_folder_name(dt)
+                        self.yd_filename = Photo._get_filename(dt, file_name)
                     else:
                         self.yd_sub_folder = Photo._get_sub_folder_name("unparsed")
             else:
