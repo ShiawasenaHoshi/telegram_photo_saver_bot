@@ -1,4 +1,5 @@
 import os
+import re
 import threading
 import time
 from os import listdir
@@ -7,7 +8,7 @@ from os.path import isfile, join
 from yadisk import yadisk
 
 from app import db
-from app.generic import create_folder_if_not_exists
+from app.generic import create_folder_if_not_exists, get_extension
 from app.models import Photo, Chat
 from config import Config
 
@@ -34,10 +35,14 @@ class Uploader(threading.Thread):
     def scan_and_upload(self):
         onlyfiles = [f for f in listdir(self.scanner_folder) if isfile(join(self.scanner_folder, f))]
         for file_name in onlyfiles:
-            path = join(self.scanner_folder, file_name)
-            photo = Photo(path, file_name, None)
-            if not self.upload_photo(photo, path):
-                self.l.info('{0} duplicate'.format(photo.get_yd_path()))
+            if self.is_extension_ok(file_name):
+                path = join(self.scanner_folder, file_name)
+                photo = Photo(path, file_name, None)
+                if not self.upload_photo(photo, path):
+                    self.l.info('{0} duplicate'.format(photo.get_yd_path()))
+
+    def is_extension_ok(self, path):
+        return re.match("^\.(jpg|jpeg|avi|mov)$", get_extension(path))
 
     def upload_photo(self, photo, local_path):
         with self.app.app_context():

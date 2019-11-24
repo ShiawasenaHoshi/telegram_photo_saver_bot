@@ -31,3 +31,7 @@ def create_yd_folder_if_not_exist(folder, ya_disk):
 def create_folder_if_not_exists(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
+
+def get_extension(local_path):
+    return os.path.splitext(local_path)[1]
