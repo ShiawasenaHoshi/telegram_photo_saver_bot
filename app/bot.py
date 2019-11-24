@@ -1,5 +1,4 @@
 import datetime
-import os
 import re
 import threading
 import time
@@ -11,6 +10,7 @@ from yadisk import yadisk
 
 from app import db
 from app.generic import create_yd_folder_if_not_exist, create_folder_if_not_exists
+from app.local_uploader import Uploader
 from app.models import Chat, Photo, ChatOption
 from config import Config
 
@@ -205,24 +205,7 @@ class Bot(threading.Thread):
                     bot.reply_to(message, "Файл не скачался. Повторите")
 
         def upload_photo(photo, local_path, chat_title):
-            yd_path = photo.get_yd_path(self.y)
-            uploaded = False
-            with open(local_path, "rb") as f:
-                if not Chat.is_exists(photo.chat_id):
-                    try:
-                        Chat.save_to_db(photo.chat_id, chat_title)
-                    except BaseException as e:
-                        self.l.error('{0}'.format(e))
-                if not self.y.exists(yd_path):
-                    self.y.upload(f, yd_path)
-                    self.l.info("YD uploaded: {0}".format(yd_path))
-                    if not Photo.is_exists(photo.chat_id, local_path):
-                        db.session.add(photo)
-                        db.session.commit()
-                        self.l.info("DB added: " + yd_path)
-                    uploaded = True
-            os.remove(local_path)
-            return uploaded
+            return Uploader.upload(self.y, self.l, photo, local_path, chat_title)
 
         @bot.message_handler(
             func=lambda message: message.chat.title is None, content_types=['document'])

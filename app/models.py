@@ -19,21 +19,29 @@ class Photo(db.Model):
     yd_filename = db.Column(db.String(240), nullable=False)
     yd_sub_folder = db.Column(db.String(240), nullable=False)
 
-    def __init__(self, local_path, message, file_name):
-        self.yd_filename = os.path.basename(local_path)
+    def __init__(self, local_path, file_name, message=None):
+        if message:
+            self.chat_id = message.chat.id
+            self.user_id = message.from_user.id
+            self.msg_id = message.message_id
+            if message.forward_date is not None and message.forward_date <= message.date:
+                date = message.forward_date
+            else:
+                date = message.date
+            self.msg_date = datetime.datetime.fromtimestamp(date)
+        else:
+            self.chat_id = 0
+            self.user_id = 0
+            self.msg_id = 0
+            self.msg_date = datetime.datetime.fromtimestamp(0)
+
         h = calc_hash(local_path)
         self.file_hash = h
-        self.chat_id = message.chat.id
-        self.user_id = message.from_user.id
-        self.msg_id = message.message_id
-        if message.forward_date is not None and message.forward_date <= message.date:
-            date = message.forward_date
-        else:
-            date = message.date
-        self.msg_date = datetime.datetime.fromtimestamp(date)
         parsed = Photo.parse_exif(local_path)
         self.yd_sub_folder = parsed[1]
         if parsed[0]:
+            if not file_name:
+                file_name = os.path.basename(local_path)
             self.yd_filename = "{0}_{1}".format(parsed[2], file_name)
         else:
             self.yd_filename = parsed[2]
