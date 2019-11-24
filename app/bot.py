@@ -187,10 +187,9 @@ class Bot(threading.Thread):
                         local_path = self.download_f + "/" + file_id + "_" + file_name
                         with open(local_path, 'w+b') as new_file:
                             new_file.write(downloaded_file)
-                        photo = Photo(local_path, message, file_name)
-                        yd_path = photo.get_yd_path(self.y)
-                        upload_photo(photo, message.message_id, message.chat.id, message.chat.title, file_name, yd_path,
-                                     local_path)
+                        photo = Photo(local_path, file_name, message)
+
+                        upload_photo(photo, local_path, message.chat.title)
                 except ApiException as ae:
                     self.l.error('{0}'.format(ae))
                     if "file is too big" in ae.args[0]:
@@ -199,25 +198,26 @@ class Bot(threading.Thread):
                     self.l.error('{0}'.format(e))
                     bot.reply_to(message, "Файл не скачался. Повторите")
 
-        def upload_photo(photo, message_id, chat_id, chat_title, file_name, yd_path, local_path):
+        def upload_photo(photo, local_path, chat_title):
+            yd_path = photo.get_yd_path(self.y)
             with open(local_path, "rb") as f:
 
-                if not Chat.is_exists(chat_id):
+                if not Chat.is_exists(photo.chat_id):
                     try:
-                        Chat.save_to_db(chat_id, chat_title)
+                        Chat.save_to_db(photo.chat_id, chat_title)
                     except BaseException as e:
                         self.l.error('{0}'.format(e))
                 if not self.y.exists(yd_path):
                     self.y.upload(f, yd_path)
-                    self.l.info("YD uploaded {0} into {1}".format(file_name, yd_path))
-                    if not Photo.is_exists(chat_id, local_path):
+                    self.l.info("YD uploaded: {0}".format(yd_path))
+                    if not Photo.is_exists(photo.chat_id, local_path):
                         db.session.add(photo)
                         db.session.commit()
                         self.l.info("DB added: " + yd_path)
                 else:
-                    bot.delete_message(chat_id, message_id)
-                    text = "{0} дубликат".format(file_name)
-                    bot.send_message(chat_id, text)
+                    bot.delete_message(photo.chat_id, photo.msg_id)
+                    text = "{0} дубликат".format(photo.yd_filename)
+                    bot.send_message(photo.chat_id, text)
             os.remove(local_path)
 
         @bot.message_handler(
