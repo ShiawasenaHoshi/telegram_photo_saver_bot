@@ -19,19 +19,7 @@ class Photo(db.Model):
     yd_filename = db.Column(db.String(240), nullable=False)
     yd_sub_folder = db.Column(db.String(240), nullable=False)
 
-    @staticmethod
-    def _get_sub_folder_name(folder_date):
-        if isinstance(folder_date, datetime.datetime):
-            name = folder_date.strftime('%Y_%m_%d')
-        else:
-            name = str(folder_date)
-        return name
-
-    @staticmethod
-    def _get_filename(exif_date, original_name):
-        return "{0}_{1}".format(exif_date.strftime('%H_%M_%S'), original_name)
-
-    def __init__(self, message, local_path, file_name):
+    def __init__(self, local_path, message, file_name):
         self.yd_filename = os.path.basename(local_path)
         h = calc_hash(local_path)
         self.file_hash = h
@@ -43,23 +31,38 @@ class Photo(db.Model):
         else:
             date = message.date
         self.msg_date = datetime.datetime.fromtimestamp(date)
+        parsed = Photo.parse_exif(local_path)
+        self.yd_sub_folder = parsed[1]
+        if parsed[0]:
+            self.yd_filename = "{0}_{1}".format(parsed[2], file_name)
+        else:
+            self.yd_filename = parsed[2]
+
+    @staticmethod
+    def parse_exif(local_path):
         with open(local_path, 'rb') as image_file:
+            has_date = False
             img = Image(image_file)
+            dt = None
             if img.has_exif and hasattr(img, 'datetime'):
                 dt_str = img.datetime
                 try:
-                    dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
-                    self.yd_sub_folder = Photo._get_sub_folder_name(dt)
-                    self.yd_filename = Photo._get_filename(dt, file_name)
-                except BaseException as e:
                     if re.match("^\d+$", dt_str):
                         dt = datetime.datetime.fromtimestamp(int(dt_str) / 1000)
-                        self.yd_sub_folder = Photo._get_sub_folder_name(dt)
-                        self.yd_filename = Photo._get_filename(dt, file_name)
                     else:
-                        self.yd_sub_folder = Photo._get_sub_folder_name("unparsed")
+                        dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
+                except BaseException as e:
+                    date_str = "unparsed"
             else:
-                self.yd_sub_folder = Photo._get_sub_folder_name("photos")
+                date_str = "photos"
+
+            if dt:
+                date_str = dt.strftime('%Y_%m_%d')
+                time_str = dt.strftime('%H_%M_%S')
+                has_date = True
+            else:
+                time_str = os.path.basename(local_path)
+            return has_date, date_str, time_str
 
     def get_yd_path(self, ya_disk=None):
         ch = Chat.get_chat(self.chat_id)

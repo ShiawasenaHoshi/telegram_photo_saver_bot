@@ -187,7 +187,7 @@ class Bot(threading.Thread):
                         local_path = self.download_f + "/" + file_id + "_" + file_name
                         with open(local_path, 'w+b') as new_file:
                             new_file.write(downloaded_file)
-                        photo = Photo(message, local_path, file_name)
+                        photo = Photo(local_path, message, file_name)
                         yd_path = photo.get_yd_path(self.y)
                         with open(local_path, "rb") as f:
 

@@ -2,7 +2,7 @@ import os
 import unittest
 
 from app.generic import calc_hash
-from app.models import Chat, ChatOption
+from app.models import Chat, ChatOption, Photo
 from config import Config
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -55,4 +55,14 @@ class SimpleTest(unittest.TestCase):
         self.assertIsNone(ChatOption.get_val(ch.id, "test_val"))
         with self.assertRaises(Exception):
             ch.add_option("test_key", "exception")
+
+    def test_parse_exif(self):
+        p1 = Photo.parse_exif(os.path.join(data_path, '1.jpg'))
+        self.assertTrue(p1[0])
+        self.assertEquals(p1[1], '2019_11_02')
+        self.assertEquals(p1[2], '18_26_44')
+        p2 = Photo.parse_exif(os.path.join(data_path, '2.jpg'))
+        self.assertFalse(p2[0])
+        self.assertEquals(p2[1], 'photos')
+        self.assertEquals(p2[2], '2.jpg')
 
