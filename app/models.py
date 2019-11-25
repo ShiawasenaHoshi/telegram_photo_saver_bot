@@ -50,19 +50,24 @@ class Photo(db.Model):
     def parse_exif(local_path):
         with open(local_path, 'rb') as image_file:
             has_date = False
-            img = Image(image_file)
             dt = None
-            if img.has_exif and hasattr(img, 'datetime'):
-                dt_str = img.datetime
-                try:
-                    if re.match("^\d+$", dt_str):
-                        dt = datetime.datetime.fromtimestamp(int(dt_str) / 1000)
-                    else:
-                        dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
-                except BaseException as e:
-                    date_str = "unparsed"
-            else:
-                date_str = "photos"
+            try:
+                img = Image(image_file)
+
+                if img.has_exif and hasattr(img, 'datetime'):
+                    dt_str = img.datetime
+                    try:
+                        if re.match("^\d+$", dt_str):
+                            dt = datetime.datetime.fromtimestamp(int(dt_str) / 1000)
+                        else:
+                            dt = datetime.datetime.strptime(dt_str, '%Y:%m:%d %H:%M:%S')
+                    except BaseException:
+                        date_str = "unparsed"
+                else:
+                    date_str = "photos"
+            except BaseException:
+                info = os.stat(local_path)
+                dt = datetime.datetime.fromtimestamp(info.st_mtime)
 
             if dt:
                 date_str = dt.strftime('%Y_%m_%d')

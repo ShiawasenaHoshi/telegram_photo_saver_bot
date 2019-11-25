@@ -34,15 +34,19 @@ class Uploader(threading.Thread):
 
     def scan_and_upload(self):
         onlyfiles = [f for f in listdir(self.scanner_folder) if isfile(join(self.scanner_folder, f))]
+        self.l.info("Found {0} files".format(len(onlyfiles)))
         for file_name in onlyfiles:
-            if self.is_extension_ok(file_name):
-                path = join(self.scanner_folder, file_name)
-                photo = Photo(path, file_name, None)
-                if not self.upload_photo(photo, path):
-                    self.l.info('{0} duplicate'.format(photo.get_yd_path()))
+            if self.is_extension_ok(file_name.lower()):
+                try:
+                    path = join(self.scanner_folder, file_name)
+                    photo = Photo(path, file_name, None)
+                    if not self.upload_photo(photo, path):
+                        self.l.info('{0} duplicate'.format(photo.get_yd_path()))
+                except BaseException as e:
+                    self.l.error(e)
 
     def is_extension_ok(self, path):
-        return re.match("^\.(jpg|jpeg|avi|mov)$", get_extension(path))
+        return re.match("^\.(jpg|jpeg|avi|mov|mp4)$", get_extension(path))
 
     def upload_photo(self, photo, local_path):
         with self.app.app_context():
