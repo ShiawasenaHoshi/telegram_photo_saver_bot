@@ -27,14 +27,14 @@ class Uploader(threading.Thread):
         create_folder_if_not_exists(Config.SCANNER_FOLDER)
 
     def run(self):
-        self.l.info("Uploader starting")
-        while True:
-            self.scan_and_upload()
-            time.sleep(self.scan_interval)
+        with self.app.app_context():
+            self.l.info("Uploader starting")
+            while True:
+                self.scan_and_upload()
+                time.sleep(self.scan_interval)
 
     def scan_and_upload(self):
         onlyfiles = [f for f in listdir(self.scanner_folder) if isfile(join(self.scanner_folder, f))]
-        self.l.info("Found {0} files".format(len(onlyfiles)))
         for file_name in onlyfiles:
             if self.is_extension_ok(file_name.lower()):
                 try:
@@ -53,7 +53,7 @@ class Uploader(threading.Thread):
             return Uploader.upload(self.y, self.l, photo, local_path, "FolderScanner")
 
     @staticmethod
-    def upload(yd, log, photo, local_path, chat_title):
+    def upload(yd, log, photo, local_path, chat_title, ):
         uploaded = False
         with open(local_path, "rb") as f:
             if not Chat.is_exists(photo.chat_id):
