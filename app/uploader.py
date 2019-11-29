@@ -6,6 +6,7 @@ from os import listdir
 from os.path import isfile, join
 
 from yadisk import yadisk
+from yadisk.exceptions import PathExistsError
 
 from app import db
 from app.generic import create_folder_if_not_exists, get_extension
@@ -37,11 +38,14 @@ class Uploader(threading.Thread):
         onlyfiles = [f for f in listdir(self.scanner_folder) if isfile(join(self.scanner_folder, f))]
         for file_name in onlyfiles:
             if self.is_extension_ok(file_name.lower()):
+                path = join(self.scanner_folder, file_name)
                 try:
-                    path = join(self.scanner_folder, file_name)
                     photo = Photo(path, file_name, None)
                     if not self.upload_photo(photo, path):
                         self.l.info('{0} duplicate'.format(photo.get_yd_path()))
+                except PathExistsError as pee:
+                    self.l.warn(pee)
+                    os.remove(path)
                 except BaseException as e:
                     self.l.error(e)
 
