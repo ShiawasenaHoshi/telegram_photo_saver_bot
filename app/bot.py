@@ -12,7 +12,7 @@ from app import db
 from app.generic import create_yd_folder_if_not_exist, create_folder_if_not_exists
 from app.uploader import Uploader
 from app.models import Chat, Photo, ChatOption
-from config import Config
+from config import Config, basedir
 
 
 class Bot(threading.Thread):
@@ -111,8 +111,33 @@ class Bot(threading.Thread):
         def send_welcome(message):
             if not is_initialized(message):
                 init_chat(message)
+                help(message)
+
+
+        @bot.message_handler(commands=['help'], func=lambda
+                message: message.chat.title is not None and message.from_user.id == int(self.admin))
+        def help(message):
+            with app.app_context():
                 bot.send_message(message.chat.id,
-                                 "Привет! Я бот для скачивания фоток в яндекс. Не пытайтесь кидать фотки не файлами - я их удалю. Не меняйте название чата. Не удаляйте фотки в чате напрямую - скидывайте мне и я удалю их сам. Чтобы получить инструкцию о правильной заливке фото напишите мне в ЛС: /help")
+                                 'Привет! Я фото-бот. Зачем я нужен? Мне всегда очень жаль, когда у Пети одни фотки, у Кати другие, у Стёпы третьи. Уже несколько лет назад было дано обещание обменяться фотками, но до дела так и не дошло. Потому что муторно :-\\'
+                                 + '\n\nЯ же соберу все фото из этого чата и залью их на яндекс-диск, чтобы у всех друзей к концу отпуска был одинаковый набор фото. Также я их рассортирую по дате и времени, чтобы можно было посмотреть на моменты отпуска с разного ракурса'
+                                 + '\n\nПри этом я хочу чтобы все фото из альбома можно было легко отретушировать и распечатать без потери в четкости, поэтому я их сохраняю в максимальном качестве'
+                                 + '\n\nЧто нужно мне, чтобы я смог сделать всё обещанное? Просто отправлять в этом чате все фотки ФАЙЛАМИ. Сейчас покажу как.')
+
+                if ChatOption.get_val(0, "android_how_to_video_id"):
+                    bot.send_video(message.chat.id, ChatOption.get_val(0, "android_how_to_video_id"))
+                else:
+                    f = open(basedir + '/android_how_to.mp4', 'rb')
+                    msg = bot.send_document(message.chat.id, f, None)
+                    Chat.get_chat(0).add_option("android_how_to_video_id", msg.video.file_id)
+
+                bot.send_message(message.chat.id,
+                                 '6 шагов: \n1) скрепка\n2) тянем вверх\n3) галерея\n4) camera\n5) отмечаем фото\n6) без сжатия')
+
+
+
+
+
 
         @bot.message_handler(commands=['direct_link'], func=lambda
                 message: is_initialized(message) and message.chat.title is not None and message.from_user.id == int(
