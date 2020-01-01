@@ -37,6 +37,7 @@ class Bot(threading.Thread):
         create_yd_folder_if_not_exist(self.yd_download_f, self.y)
         create_folder_if_not_exists(self.download_f)
         self.init_commands()
+        self.init_bot_options()
         self.use_webhooks(Config.WEBHOOK_ENABLE)
 
     def use_webhooks(self, value):
@@ -68,6 +69,12 @@ class Bot(threading.Thread):
         else:
             bot.polling(none_stop=True)
         self.l.info("Webhook enabled: " + str(value))
+
+    def init_bot_options(self):
+        with self.app.app_context():
+            ch = Chat.get_chat(1)
+            if ch is None:
+                Chat.save_to_db(1, "BotOptions")
 
     def init_commands(self):
         bot = self.bot
@@ -124,12 +131,12 @@ class Bot(threading.Thread):
                                  + '\n\nПри этом я хочу чтобы все фото из альбома можно было легко отретушировать и распечатать без потери в четкости, поэтому я их сохраняю в максимальном качестве'
                                  + '\n\nЧто нужно мне, чтобы я смог сделать всё обещанное? Просто отправлять в этом чате все фотки ФАЙЛАМИ. Сейчас покажу как.')
 
-                if ChatOption.get_val(0, "android_how_to_video_id"):
-                    bot.send_video(message.chat.id, ChatOption.get_val(0, "android_how_to_video_id"))
+                if ChatOption.get_val(1, "android_how_to_video_id"):
+                    bot.send_video(message.chat.id, ChatOption.get_val(1, "android_how_to_video_id"))
                 else:
                     f = open(basedir + '/android_how_to.mp4', 'rb')
                     msg = bot.send_document(message.chat.id, f, None)
-                    Chat.get_chat(0).add_option("android_how_to_video_id", msg.video.file_id)
+                    Chat.get_chat(1).add_option("android_how_to_video_id", msg.video.file_id)
 
                 bot.send_message(message.chat.id,
                                  '6 шагов: \n1) скрепка\n2) тянем вверх\n3) галерея\n4) camera\n5) отмечаем фото\n6) без сжатия')
