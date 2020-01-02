@@ -1,19 +1,19 @@
 # Telegram photo saver bot
 Bot for saving and manage photo from chats.
-# Install
+
+# Installation
 1) ```sudo apt-get install python3 git```
 2) ```git clone git@github.com:ShiawasenaHoshi/telegram_photo_saver_bot.git; cd telegram_photo_saver_bot```
 3) ```python3 -m venv venv; source venv/bin/activate; export FLASK_APP=bot.py;pip install -r requirements.txt; flask db upgrade```
-4) Create ```.env``` in project directory and define further variables in it:
-YD_TOKEN=<yandex disk token>
-TG_TOKEN=<telegram token>
-TG_ADMIN_ID=<telegram bot owner id>
-WEBHOOK_HOST=<VPS ip>
-5) ```openssl genrsa -out webhook_pkey.pem 2048; openssl req -new -x509 -days 3650 -key webhook_pkey.pem -out webhook_cert.pem```
+4) Copy ```.env.example``` to ```.env``` and change the YD_TOKEN, TG_TOKEN, TG_ADMIN_ID
+ 
+ If you will use this bot from the local machine, then skip next section and go to ``Starting the bot``.
+ 
+## On production server
+On production server follow these steps: 
+1) ```openssl genrsa -out webhook_pkey.pem 2048; openssl req -new -x509 -days 3650 -key webhook_pkey.pem -out webhook_cert.pem```
 When asked for "Common Name (e.g. server FQDN or YOUR name)" you should reply with the same value in you put in WEBHOOK_HOST
-6) ```python start.py```
-# Run on a local machine 
-It's useful option for local debug.
-1) Do 1-4 from 'Install' section. Don't need to define WEBHOOK_HOST-var
-2) Instead of define ```WEBHOOK_HOST``` set ```WEBHOOK_ENABLE=0```
-3) ```python start.py``
+2) Set ```WEBHOOK_ENABLE=1``` in ```.env```
+
+## Starting the bot 
+1) ```python start.py```
