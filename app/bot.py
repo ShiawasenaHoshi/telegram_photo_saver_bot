@@ -10,8 +10,8 @@ from yadisk import yadisk
 
 from app import db
 from app.generic import create_yd_folder_if_not_exist, create_folder_if_not_exists
-from app.uploader import Uploader
 from app.models import Chat, Photo, ChatOption
+from app.uploader import Uploader
 from config import Config, basedir
 
 
@@ -120,7 +120,6 @@ class Bot(threading.Thread):
                 init_chat(message)
                 help(message)
 
-
         @bot.message_handler(commands=['help'], func=lambda
                 message: message.chat.title is not None and message.from_user.id == int(self.admin))
         def help(message):
@@ -140,11 +139,6 @@ class Bot(threading.Thread):
 
                 bot.send_message(message.chat.id,
                                  '6 шагов: \n1) скрепка\n2) тянем вверх\n3) галерея\n4) camera\n5) отмечаем фото\n6) без сжатия')
-
-
-
-
-
 
         @bot.message_handler(commands=['direct_link'], func=lambda
                 message: is_initialized(message) and message.chat.title is not None and message.from_user.id == int(

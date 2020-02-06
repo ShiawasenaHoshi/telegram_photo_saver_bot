@@ -50,7 +50,7 @@ class Uploader(threading.Thread):
                     self.l.error(e)
 
     def is_extension_ok(self, path):
-        return re.match("^\.(jpg|jpeg|avi|mov|mp4)$", get_extension(path))
+        return re.match("^\.(jpg|jpeg|avi|mov|mp4|mkv)$", get_extension(path))
 
     def upload_photo(self, photo, local_path):
         with self.app.app_context():
