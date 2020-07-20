@@ -41,6 +41,7 @@ class Uploader(threading.Thread):
                 path = join(self.scanner_folder, file_name)
                 try:
                     photo = Photo(path, file_name, None)
+                    self.l.info('uploading {0}'.format(file_name))
                     if not self.upload_photo(photo, path):
                         self.l.info('{0} duplicate'.format(photo.get_yd_path()))
                 except PathExistsError as pee:
@@ -50,7 +51,7 @@ class Uploader(threading.Thread):
                     self.l.error(e)
 
     def is_extension_ok(self, path):
-        return re.match("^\.(jpg|jpeg|avi|mov|mp4|mkv)$", get_extension(path))
+        return re.match("^\.(jpg|jpeg|avi|mov|mp4|mkv|mts)$", get_extension(path))
 
     def upload_photo(self, photo, local_path):
         with self.app.app_context():
@@ -67,8 +68,10 @@ class Uploader(threading.Thread):
                     log.error('{0}'.format(e))
             yd_path = photo.get_yd_path(yd)
             if not yd.exists(yd_path):
+                start = time.time()
                 yd.upload(f, yd_path)
-                log.info("YD uploaded: {0}".format(yd_path))
+                end = time.time()
+                log.info("YD uploaded: {0} ({1}s)".format(yd_path, str(end - start)))
                 if not Photo.is_exists(photo.chat_id, local_path):
                     db.session.add(photo)
                     db.session.commit()

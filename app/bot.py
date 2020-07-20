@@ -147,6 +147,7 @@ class Bot(threading.Thread):
             yd_path = self.yd_download_f + "/" + message.chat.title
             link = self.y.get_download_link(yd_path)
             bot.send_message(message.chat.id, "Архив с фотками: " + link)
+            bot.delete_message(message.chat.id, message.message_id)
 
         @bot.message_handler(commands=['link'], func=lambda
                 message: is_initialized(message) and message.chat.title is not None and message.from_user.id == int(
@@ -156,6 +157,7 @@ class Bot(threading.Thread):
             self.y.publish(path=yd_path, fields=["public_url"])
             link = self.y.get_meta(yd_path).public_url
             bot.send_message(message.chat.id, "Фотки здесь: " + link)
+            bot.delete_message(message.chat.id, message.message_id)
 
         @bot.message_handler(commands=['photo_toggle'], func=lambda
                 message: is_initialized(message) and message.chat.title is not None and message.from_user.id == int(
@@ -167,6 +169,7 @@ class Bot(threading.Thread):
             else:
                 write_chat_option(message, "photo_allowed", "1")
                 bot.send_message(message.chat.id, "Сжатые фото разрешены")
+            bot.delete_message(message.chat.id, message.message_id)
 
         @bot.message_handler(commands=['space'], func=lambda
                 message: message.from_user.id == int(self.admin) and message.chat.title is None)
@@ -174,6 +177,7 @@ class Bot(threading.Thread):
             info_obj = self.y.get_disk_info()
             text = "Доступно {0:.3f} ГБ".format((info_obj.total_space - info_obj.used_space) / (1024 * 1024 * 1024))
             bot.send_message(message.chat.id, text)
+            bot.delete_message(message.chat.id, message.message_id)
 
         @bot.message_handler(content_types=["group_chat_created", "migrate_to_chat_id", "migrate_from_chat_id"])
         def group_chat_created(message):
